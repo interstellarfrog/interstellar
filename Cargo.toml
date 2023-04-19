@@ -3,8 +3,6 @@ name = "interstellar_os"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 # To Build This We Need Bootimage To Merge The Bootloader And The OS Into A File
 # And We Need llvm-tools-preview component for Bootloader - rustup component add llvm-tools-preview
