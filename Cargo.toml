@@ -6,10 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-
-# We Cannot Use Unwinding On Panic So We Abort
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-panic = "abort"
+# To Build This We Need Bootimage To Merge The Bootloader And The OS Into A File
+# And We Need llvm-tools-preview component for Bootloader - rustup component add llvm-tools-preview
+bootloader = "0.9.8"

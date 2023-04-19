@@ -1,0 +1,24 @@
+## Target Json file
+This Is Used To Make A Custom Target For Building The OS As We Want To Run For Bare Metal
+
+# Instead Of Using The OS Default Linker We Use The Cross Platform LLD Linker That Comes With Rust
+"linker-flavor": "ld.lld",
+"linker": "rust-lld",
+
+# Since We Cannot Unwind The Stack We Abort Instead
+"panic-strategy": "abort",
+
+# The Redzone Is An Area Below A Function (128 bytes) That Is Used For Temp Data But In Our Case That Will Overwrite Important Data That We Need
+# For Example Interrupts Or Exceptions When They Happen The Data Inside Of The Redzone Will Be OverWritten And Will Cause The Function To Break - Stack Corruption
+"disable-redzone": true,
+
+# mmx And sse Is For SIMD Instructions Which Can Make Programs Faster But Using The SIMD Registers In Our Kernel Will Cause It To Slow Down
+# As The Kernel Needs To Restore The Registers To Their Original State Before Continuing A Program After An Interrupt
+# This Means That The Kernel Has To Save The Whole SIMD State To The Main Memory On Each System Call Or Hardware Interrupt
+# But Since We Are Removing Support For The SSE Registers This Causes A Problem As The Rust Core Lib Uses These For Floats So We Add soft-float To Tell LLVM To Fix This
+# Which Does Cause A Slight Slow Down
+"features": "-mmx,-sse,+soft-float",
+
+## VGA Text Buffer
+Buffer Address Is Located at 0xb8000
+This Is The Easiest Way Of Printing To The Screen As All We Have To Do Is Write To A Memory Location

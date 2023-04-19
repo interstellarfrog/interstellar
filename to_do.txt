@@ -1,0 +1,3 @@
+Make Multiboot Compatible
+Write Own Bootloader
+Add UEFI Support As It Only Supports BIOS Boot
