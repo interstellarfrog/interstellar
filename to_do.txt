@@ -1,3 +1,5 @@
 Make Multiboot Compatible
 Write Own Bootloader
 Add UEFI Support As It Only Supports BIOS Boot
+Update Bootloader And Fix
+try To Update Volatile Maybe Make Own Volatile mod

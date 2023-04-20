@@ -1,14 +1,11 @@
 // We Cannot Use The Standard Lib As It has OS Specific Functions.
 #![no_std]
-
 // A Function Is Called Before The Main Function Which Sets Up The Environment.
 // So We Need To OverWrite This As We Do Not Have The OS We Are Coding One.
 // And We Do Not Have Access To the Rust runtime and crt0.
 #![no_main]
 
 mod vga_buffer;
-
-
 
 //###################
 // CROSS COMPILING
@@ -37,6 +34,3 @@ pub extern "C" fn _start() -> ! {
     vga_buffer::print_something();
     loop {}
 }
-
-
-

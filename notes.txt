@@ -16,9 +16,16 @@ This Is Used To Make A Custom Target For Building The OS As We Want To Run For B
 # As The Kernel Needs To Restore The Registers To Their Original State Before Continuing A Program After An Interrupt
 # This Means That The Kernel Has To Save The Whole SIMD State To The Main Memory On Each System Call Or Hardware Interrupt
 # But Since We Are Removing Support For The SSE Registers This Causes A Problem As The Rust Core Lib Uses These For Floats So We Add soft-float To Tell LLVM To Fix This
-# Which Does Cause A Slight Slow Down
+# Which Does Cause A Slight Slow Down But Should Be Faster Overall
 "features": "-mmx,-sse,+soft-float",
 
 ## VGA Text Buffer
-Buffer Address Is Located at 0xb8000
+Buffer Address Is Located at 0xb8000 - Memory Mapped I/O
 This Is The Easiest Way Of Printing To The Screen As All We Have To Do Is Write To A Memory Location
+
+## Volatile
+In Future Rust Updates The Compiler Might Optimize The Code Even More So Our Writes To The VGA Buffer Might Be Removed By The Compiler
+If It Does Not Think That It Is Needed - It Just Sees That We Are Writing To A Memory Location
+
+"The volatile keyword indicates that a value may change between different accesses, even if it does not appear to be modified."
+"This keyword prevents an optimizing compiler from optimizing away subsequent reads or writes and thus incorrectly reusing a stale value or omitting writes."

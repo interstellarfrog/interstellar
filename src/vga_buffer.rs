@@ -1,7 +1,11 @@
+use volatile::Volatile;
+use core::fmt;
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)] // Store As u8
-pub enum Color { // Posible Colors Enum
+pub enum Color {
+    // Posible Colors Enum
     Black = 0,
     Blue = 1,
     Green = 2,
@@ -24,7 +28,8 @@ pub enum Color { // Posible Colors Enum
 #[repr(transparent)]
 struct ColorCode(u8);
 
-impl ColorCode { // Returns The ColorCode For The Given Background and Foreground Colors
+impl ColorCode {
+    // Returns The ColorCode For The Given Background and Foreground Colors
     fn new(foreground: Color, background: Color) -> ColorCode {
         // Bitwise OR of the Background and Foreground Colors
         // Say If We Want To Do Black which = 0 and in binary = 0000 And White = 15 = 1111
@@ -45,7 +50,7 @@ const BUFFER_WIDTH: usize = 80;
 
 #[repr(transparent)]
 struct Buffer {
-    chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT], 
+    chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT], // Make This Volatile - Dont Optimize This Away
 }
 
 pub struct Writer {
@@ -56,21 +61,25 @@ pub struct Writer {
 
 impl Writer {
     pub fn write_byte(&mut self, byte: u8) {
-        match byte { // Match The Byte
+        match byte {
+            // Match The Byte
             b'\n' => self.new_line(), // If The Byte Is New Line Byte Call The New Line Function
-            byte => { // Else
-                if self.column_position >= BUFFER_WIDTH { // If The Column Position Is Greater Than The Buffer Width
+            byte => {
+                // Else
+                if self.column_position >= BUFFER_WIDTH {
+                    // If The Column Position Is Greater Than The Buffer Width
                     self.new_line(); // Then Move To The New Line
                 }
 
-                let row = BUFFER_HEIGHT - 1;   // Get The Row Position
+                let row = BUFFER_HEIGHT - 1; // Get The Row Position
                 let col = self.column_position; // Get The Column Position
 
                 let color_code = self.color_code; // Get The Color Code
-                self.buffer.chars[row][col] = ScreenChar { // Set The Character In The Buffer
-                    ascii_character: byte,                      // The Byte
-                    color_code,                                // The Color Code
-                };
+                self.buffer.chars[row][col].write(ScreenChar { // Volatile Write
+                    // Set The Character In The Buffer
+                    ascii_character: byte, // The Byte
+                    color_code,            // The Color Code
+                });
                 self.column_position += 1; // Increment The Column Position After Writing The Character
             }
         }
@@ -81,23 +90,29 @@ impl Writer {
             match byte {
                 0x20..=0x7e | b'\n' => self.write_byte(byte), // If The Byte Is Between 0x20 And 0x7E Or New Line Byte
                 _ => self.write_byte(0xfe), // Else Write The Byte 0xFE - INVALID CHARACTER
-            }   
+            }
         }
     }
 
-
-    fn new_line(&mut self) { todo!() }
+    fn new_line(&mut self) {
+        todo!()
+    }
 }
 
+impl fmt::Write for Writer {
+    fn write_str(&mut self, s: &str) -> fmt::Result { // Formatted
+        self.write_string(s);
+        Ok(())
+    }
+}
 
 pub fn print_something() {
+    use core::fmt::Write;
     let mut writer = Writer {
         column_position: 0,
         color_code: ColorCode::new(Color::Yellow, Color::Black),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
     };
 
-    writer.write_byte(b'H');
-    writer.write_string("ello ");
-    writer.write_string("Wörld!");
+    write!(writer, "{} {}", "Formatted", "Strings!").unwrap();
 }
