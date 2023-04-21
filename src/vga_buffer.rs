@@ -1,7 +1,10 @@
 use volatile::Volatile;
+use core::fmt;
 use core::fmt::{ Write, Result};
 use lazy_static::lazy_static;
 use spin::Mutex;
+
+
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -130,13 +133,20 @@ impl Write for Writer {
         Ok(())
     }
 }
+//--------------------------------------------------------------------------
 
-pub fn print_something() {
-    let mut writer = Writer {
-        column_position: 0,
-        color_code: ColorCode::new(Color::Yellow, Color::Black),
-        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
-    };
+#[macro_export]
+macro_rules! print { // Calls _print after formatting
+    ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
+}
 
-    write!(writer, "{} {}", "Formatted", "Strings!").unwrap(); // The unwrap Should Not Panic As Writes To The VGA Buffer Never Fail
+#[macro_export]
+macro_rules! println { // Calls print! macro but adds newline
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
+
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    WRITER.lock().write_fmt(args).unwrap();
 }

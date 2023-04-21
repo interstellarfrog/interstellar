@@ -33,9 +33,7 @@ fn panic(_info: &PanicInfo) -> ! {
 // This Function Should Be Called _start For LLVM.
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    use core::fmt::Write;
-    vga_buffer::WRITER.lock().write_str("Hello again").unwrap();
-    write!(vga_buffer::WRITER.lock(), ", Some Formatted Numbers With SpinLock: {} {} ", 42, 1.0 / 4.0).unwrap();
-
+    println!("Hello, World{} This Is A Println!", "!");
+    print!("This Is A Print!");
     loop {}
 }
