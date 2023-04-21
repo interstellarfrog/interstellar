@@ -3,3 +3,4 @@ Write Own Bootloader
 Add UEFI Support As It Only Supports BIOS Boot
 Update Bootloader And Fix
 try To Update Volatile Maybe Make Own Volatile mod
+Look Into ACPI And APM Power Managment

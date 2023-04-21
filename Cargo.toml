@@ -16,3 +16,14 @@ lazy_static = { version = "1.4.0", features = ["spin_no_std"] } # With No Standa
 # This Is Used To Make Spinlocks Which Can Be Used To Lock A Resource And Other Programs Will Constantly Run A Loop Requesting Access (But It Will Only Run The Programs Loops Seperatly) 
 # And When The Program Is Free The Thread/Program Trying To Access It Will Be Given Access
 spin = "0.5.2"
+# For Exiting QUEMU By Writing To A Port
+x86_64 = "0.14.2"
+# This Is Used For Sending Data Over The Serial Port
+uart_16550 = "0.2.0"
+
+# When Testing Append Args To QUEMU
+[package.metadata.bootimage] 
+# Redirect Serial Input To Main PC Standard Output
+test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-serial", "stdio", "-display", "none"] # Port 0xf4, 4 bytes
+test-success-exit-code = 33 # (0x10 << 1) | 1   Im Confused Why This Number Is 33?
+test-timeout = 20 # Seconds

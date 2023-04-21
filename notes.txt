@@ -44,3 +44,16 @@ So Instead We Use The Lazy Static Crate
 Used To Manage Access Between Shared Resources
 Can Be Used To Lock A Resource And Other Programs Will Constantly Run A Loop Requesting Access (But It Will Only Run The Programs Loops Seperatly) 
 And When The Program Is Free The Thread/Program Trying To Access It Will Be Given Access
+
+## Testing 
+When Running Custom Tests We Add #![reexport_test_harness_main = "test_main"] Because We Are Using No Main Which Also Means No Main For Tests So We Change The Name Then 
+If We Are Running A Test We Call It Inside Of _start
+
+We Also Add This Which When Testing Append Args To QUEMU
+[package.metadata.bootimage] 
+test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04"]
+
+
+ Port 0xf4, 4 bytes
+Then We Write A number To This Port (0 or 1) 1 = "(1 << 1) | 1 = 3" 0 = "(0 << 1) | 1 = 1"
+We Use The x86_64 Crate To Do This
