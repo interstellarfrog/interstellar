@@ -3,8 +3,16 @@ name = "interstellar_os"
 version = "0.1.0"
 edition = "2021"
 
+
+# CHANGING DEPENDENCIES VERSIONS WILL CAUSE ERRORS
 [dependencies]
 # To Build This We Need Bootimage To Merge The Bootloader And The OS Into A File
 # And We Need llvm-tools-preview component for Bootloader - rustup component add llvm-tools-preview
 bootloader = "0.9.22"
+# Makes It So That Reads And Writes To Memory Wont Be Optimized Away By The Compiler
 volatile = "0.2.6"
+# For Making Statics That Initialize At Run Time And Not Compile Time
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] } # With No Standard lib
+# This Is Used To Make Spinlocks Which Can Be Used To Lock A Resource And Other Programs Will Constantly Run A Loop Requesting Access (But It Will Only Run The Programs Loops Seperatly) 
+# And When The Program Is Free The Thread/Program Trying To Access It Will Be Given Access
+spin = "0.5.2"

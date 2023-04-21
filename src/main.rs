@@ -7,6 +7,7 @@
 
 mod vga_buffer;
 
+
 //###################
 // CROSS COMPILING
 //###################
@@ -18,6 +19,7 @@ mod vga_buffer;
 // To Avoid Linker Errors We want to Compile Our Code Using Our Custom Target.
 
 use core::panic::PanicInfo;
+
 
 // This function is called on panic.
 // The Panic Info Contains Information About The Panic.
@@ -31,6 +33,9 @@ fn panic(_info: &PanicInfo) -> ! {
 // This Function Should Be Called _start For LLVM.
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    vga_buffer::print_something();
+    use core::fmt::Write;
+    vga_buffer::WRITER.lock().write_str("Hello again").unwrap();
+    write!(vga_buffer::WRITER.lock(), ", Some Formatted Numbers With SpinLock: {} {} ", 42, 1.0 / 4.0).unwrap();
+
     loop {}
 }

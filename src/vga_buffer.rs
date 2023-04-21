@@ -1,5 +1,7 @@
 use volatile::Volatile;
-use core::fmt;
+use core::fmt::{ Write, Result};
+use lazy_static::lazy_static;
+use spin::Mutex;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,6 +60,13 @@ pub struct Writer {
     color_code: ColorCode,
     buffer: &'static mut Buffer, // Static Reference To The Buffer
 }
+lazy_static! {
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+        column_position: 0,
+        color_code: ColorCode::new(Color::Yellow, Color::Black),
+        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
+    });
+}
 
 impl Writer {
     pub fn write_byte(&mut self, byte: u8) {
@@ -95,24 +104,39 @@ impl Writer {
     }
 
     fn new_line(&mut self) {
-        todo!()
+        for row in 1..BUFFER_HEIGHT { // Row 0 Is Moved Off Screen So No Need To Count This
+            for col in 0..BUFFER_WIDTH { // For Every Char
+                let character = self.buffer.chars[row][col].read(); // Read Char Pos
+                self.buffer.chars[row - 1][col].write(character); // Write Char To One Line Up
+            }
+        }
+        self.clear_row(BUFFER_HEIGHT - 1);
+        self.column_position = 0;
+    }
+    fn clear_row(&mut self, row: usize) { // Does What It Says
+        let blank = ScreenChar { // Blank ScreenChar
+            ascii_character: b' ',
+            color_code: self.color_code,
+        };
+        for col in 0..BUFFER_WIDTH { // For Every Char In Given Row
+            self.buffer.chars[row][col].write(blank) // Write Blank Char
+        }
     }
 }
 
-impl fmt::Write for Writer {
-    fn write_str(&mut self, s: &str) -> fmt::Result { // Formatted
+impl Write for Writer {
+    fn write_str(&mut self, s: &str) -> Result { // Formatted
         self.write_string(s);
         Ok(())
     }
 }
 
 pub fn print_something() {
-    use core::fmt::Write;
     let mut writer = Writer {
         column_position: 0,
         color_code: ColorCode::new(Color::Yellow, Color::Black),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
     };
 
-    write!(writer, "{} {}", "Formatted", "Strings!").unwrap();
+    write!(writer, "{} {}", "Formatted", "Strings!").unwrap(); // The unwrap Should Not Panic As Writes To The VGA Buffer Never Fail
 }
