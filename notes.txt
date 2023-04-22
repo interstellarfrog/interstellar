@@ -3,6 +3,13 @@ Other Sentences Are Written In My Own Words
 
 ## Target Json file
 This Is Used To Make A Custom Target For Building The OS As We Want To Run For Bare Metal
+My Build
+host: x86_64-pc-windows-msvc
+release: 1.71.0-nightly
+
+Target Build
+To Avoid Linker Errors We Want To Cross Compile Our Code Using Our Custom Target.
+
 
 # Instead Of Using The OS Default Linker We Use The Cross Platform LLD Linker That Comes With Rust
 "linker-flavor": "ld.lld",
