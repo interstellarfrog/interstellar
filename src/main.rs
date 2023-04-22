@@ -13,10 +13,16 @@ use interstellar_os::println;
 // This Function Should Be Called _start For LLVM.
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
+    println!("Now We Can Handle Breakpoint Exceptions Here we Cause One On Purpose");
+
+    interstellar_os::init(); // Start Interrupt Descriptor table
+
+    x86_64::instructions::interrupts::int3(); // Breakpoint Exception
+
     #[cfg(test)]
     test_main();
 
-    println!("Now Has Serial Print That Can Be Used With Cargo Test");
+    println!("Now The OS Does Not Crash!");
     #[allow(clippy::empty_loop)]
     loop {}
 }

@@ -54,13 +54,64 @@ And When The Program Is Free The Thread/Program Trying To Access It Will Be Give
 
 ## Testing 
 When Running Custom Tests We Add #![reexport_test_harness_main = "test_main"] Because We Are Using No Main Which Also Means No Main For Tests So We Change The Name Then 
-If We Are Running A Test We Call It Inside Of _start
+
+Any Tests In Test Folder Will Be Recognized Automatically
 
 We Also Add This Which When Testing Append Args To QUEMU
 [package.metadata.bootimage] 
 test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04"]
 
 
- Port 0xf4, 4 bytes
-Then We Write A number To This Port (0 or 1) 1 = "(1 << 1) | 1 = 3" 0 = "(0 << 1) | 1 = 1"
+Port 0xf4, 4 bytes
+Then We Write A Number To This Port (0 or 1) 1 = "(1 << 1) | 1 = 3" 0 = "(0 << 1) | 1 = 1"
+Which Will Either Exit With Success Or Error
 We Use The x86_64 Crate To Do This
+
+
+## CPU Exceptions
+Exceptions Occur In A Bunch Of Different Ways - 0 Division, Accessing Invalid Memory Address ect.
+An Exception Signal Means That Something Isn't Working In Given Instruction
+There Are 32 CPU Exception Types  0 - 31
+Most Common - Divide by zero, Invalid opcode, General protection fault, Page fault, Floating point exception
+
+
+
+Exception Number	Exception Name	Description
+0	                Divide by zero| The CPU tried to divide a number by zero.
+1	                Debug exception|	The CPU received a debug event.
+2	                NMI interrupt| The CPU received a non-maskable interrupt.
+3	                Breakpoint exception| The CPU encountered a breakpoint instruction.
+4	                Overflow exception| The CPU encountered an overflow error.
+5	                Bounds check exception| The CPU tried to access an invalid memory location.
+6	                Invalid opcode exception| The CPU tried to execute an invalid opcode.
+7	                Coprocessor not available exception|	The CPU did not find a coprocessor.
+8	                Double fault exception| The CPU encountered a second fault while handling a fault.
+9	                Invalid TSS exception| The CPU tried to access an invalid task state segment.
+10	                Segment not present exception| The CPU tried to access a segment that was not present.
+11	                Stack fault exception| The CPU tried to access an invalid stack location.
+12	                General protection fault exception| The CPU tried to access a memory location that it did not have permission to access.
+13	                Page fault exception| The CPU tried to access a memory page that was not currently loaded into memory.
+14	                Reserved	
+15	                Floating point exception| The CPU encountered an error during the calculation of a floating point value.
+16	                Alignment check exception| The CPU tried to access a memory location that was not aligned correctly.
+17	                Machine check exception|	The CPU detected a hardware error.
+18	                SIMD floating point exception| The CPU encountered an error during the calculation of a SIMD floating point value.
+19	                Virtual interrupt error|	The CPU received a virtual interrupt that it did not expect.
+20	                Input/output bound range exception| The CPU tried to access an input/output device that it did not have permission to access.
+21	                Security exception| The CPU tried to access a memory location that was protected by the security system.
+22-31	            Reserved	
+
+#To Fix This Problem We Have To Set Up A Interrupt Descriptor Table
+
+["
+When an exception occurs, the CPU roughly does the following:
+
+Push some registers on the stack, including the instruction pointer and the RFLAGS register. (We will use these values later in this post.)
+Read the corresponding entry from the Interrupt Descriptor Table (IDT). For example, the CPU reads the 14th entry when a page fault occurs.
+Check if the entry is present and, if not, raise a double fault.
+Disable hardware interrupts if the entry is an interrupt gate (bit 40 not set).
+Load the specified GDT selector into the CS (code segment).
+Jump to the specified handler function.
+"]
+
+

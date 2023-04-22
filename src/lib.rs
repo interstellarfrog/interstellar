@@ -1,15 +1,22 @@
 #![no_std]
-
 #![cfg_attr(test, no_main)] // If test - No Main
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
+#![feature(abi_x86_interrupt)]
+
 
 use core::panic::PanicInfo;
 use x86_64::instructions::port::Port;
 
 pub mod vga_buffer;
 pub mod serial;
+pub mod interrupts;
+
+
+pub fn init() { // INITIALIZE The Interrupt Descriptor Table
+    interrupts::init_idt();
+}
 
 
 pub trait Testable {
