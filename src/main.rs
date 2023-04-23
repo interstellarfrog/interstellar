@@ -7,17 +7,14 @@
 use core::panic::PanicInfo;
 use interstellar_os::println;
 
-
 // Dont Mangle The Name Of This Function.
 // Extern "C" means that this function uses the C calling convention.
 // This Function Should Be Called _start For LLVM.
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    println!("Now We Can Handle Breakpoint Exceptions Here we Cause One On Purpose");
+    println!("Now We Can Handle Double Fault Exceptions With A New Double Stack");
 
     interstellar_os::init(); // Start Interrupt Descriptor table
-
-    x86_64::instructions::interrupts::int3(); // Breakpoint Exception
 
     #[cfg(test)]
     test_main();
@@ -30,7 +27,7 @@ pub extern "C" fn _start() -> ! {
 #[cfg(not(test))] // If Not In Test
 #[panic_handler] // This function is called on panic.
 fn panic(info: &PanicInfo) -> ! { // The Panic Info Contains Information About The Panic.
-    println!("{info}");
+    println!("NOT A TEST:{info}");
     loop {}
 }
 

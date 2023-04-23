@@ -12,9 +12,22 @@ use x86_64::instructions::port::Port;
 pub mod vga_buffer;
 pub mod serial;
 pub mod interrupts;
+pub mod syscall;
+pub mod gdt;
+
+/// Entry point for `cargo test`
+#[cfg(test)]
+#[no_mangle]
+pub extern "C" fn _start() -> ! {
+    init();
+    test_main();
+    loop {}
+}
+
 
 
 pub fn init() { // INITIALIZE The Interrupt Descriptor Table
+    gdt::init();
     interrupts::init_idt();
 }
 
@@ -49,13 +62,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     loop {}
 }
 
-/// Entry point for `cargo test`
-#[cfg(test)]
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    test_main();
-    loop {}
-}
+
 
 #[cfg(test)]
 #[panic_handler]
@@ -63,7 +70,7 @@ fn panic(info: &PanicInfo) -> ! {
     test_panic_handler(info)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)] // Adds Functionallity To Enum - Debug Formatting ect.
 #[repr(u32)]
 pub enum QemuExitCode {
     Success = 0x10,

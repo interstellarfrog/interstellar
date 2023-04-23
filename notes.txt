@@ -114,4 +114,167 @@ Load the specified GDT selector into the CS (code segment).
 Jump to the specified handler function.
 "]
 
+## Double Faults - number 8
+Double Faults Happen When The Cpu Fails To Call The First Exception Handler
+Double Faults Are Like Catch All {} - sometimes
 
+
+## Interrupt Stack Table
+The IST Is A Table Of Pointers - 7 To Stacks That We Know Are Good Stacks 
+
+## Task State Segment -- Legacy Structure
+Was Used To Hold Information About A Task In 32 Bit Mode And For Hardware Context Switching
+But This Is No Longer Supported In 64 Bit Mode
+
+New TSS =
+Reserved u32
+Privilege Stack Table [u64; 3] -- Ignore This Until We Have User Mode Programs
+Reserved u64
+IST [u64; 7]  -- 7 Pointers To Clean Stacks
+Reserved u64
+Reserved u16
+I/O Map Base Address
+
+
+## Global Descriptor Table
+This Was Used Before Paging For Memory Management
+"However, it is still needed in 64-bit mode for various things, such as kernel/user mode configuration or TSS loading."
+
+## System Calls - From Chat GPT
+
+The exact implementation details for setting up a system call interface can vary depending on your operating system and programming language. However, I can give you a general idea of how to do this in Rust.
+
+Here's a high-level overview of the steps involved:
+
+1. Define the interface for your system call: This involves defining the function signature for your kernel function that will be callable from user-space. You should specify the input parameters and the expected return value.
+
+For example, let's say you want to create a system call that allows user-space code to get the current system time. You could define a function signature like this:
+
+```rust
+pub fn get_system_time() -> u64 {
+    // implementation goes here
+}
+```
+
+2. Allocate a system call number: In order to create a system call, you need to allocate a unique number that identifies it. This number will be used by user-space code to request the system call.
+
+3. Implement the system call handler function: This is the function that will actually execute the kernel code for your system call. It should accept the input parameters from user-space, perform any necessary processing, and return the output value (if any).
+
+For example, here's a simple implementation of the `get_system_time` function that returns the current system time as a 64-bit integer:
+
+```rust
+pub fn get_system_time() -> u64 {
+    // Get the current time from the system clock
+    let now = std::time::SystemTime::now();
+    
+    // Convert the time to a 64-bit integer and return it
+    now.duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+```
+
+4. Update the system call table: This involves adding an entry to the kernel's system call table that maps your system call number to the corresponding handler function.
+
+In Rust, you can define a system call table as a static array of function pointers. For example:
+
+```rust
+static SYSCALL_TABLE: [Option<unsafe extern "C" fn() -> u64>; 1] = [
+    Some(get_system_time),
+];
+```
+
+In this example, we're defining a system call table with a single entry that maps system call number 0 to the `get_system_time` function.
+
+5. Provide a user-space library function: Finally, you need to provide a library function that user-space code can call to trigger your system call. This library function should use inline assembly to execute the software interrupt instruction and pass the appropriate system call number and arguments to the kernel.
+
+Here's an example of a library function that calls the `get_system_time` system call:
+
+```rust
+pub fn get_system_time() -> u64 {
+    let result: u64;
+    
+    unsafe {
+        // Execute the software interrupt instruction to trigger the system call
+        asm!(
+            "int 0x80",
+            inout("rax") 0,
+            lateout("rdx") result,
+            options(nostack),
+        );
+    }
+    
+    result
+}
+```
+
+In this example, we're using inline assembly to execute the `int 0x80` instruction, which is the software interrupt instruction on x86 architectures. We're passing the system call number (0) in the `rax` register and expecting the return value to be passed back in the `rdx` register.
+
+That's a general overview of how to create a system call interface in Rust. Keep in mind that the exact details can vary depending on your specific use case and operating system. Additionally, system calls can be a powerful but potentially dangerous feature, so you should take care to ensure that your system call interface is secure and well-audited.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# System Call Table More Info - From Chat-GPT
+
+To make the system call table work, we need to perform the following steps:
+
+1. Define the system call function: We need to define the function that will be called when a system call is made. This function should take a pointer to the system call parameters as its input, and it should return the result of the system call.
+
+2. Assign an index to the system call: Each system call should have a unique index, which will be used to identify the system call when it is invoked.
+
+3. Update the system call table: We need to update the system call table with the index and the function pointer for each system call. This is typically done during the kernel initialization process.
+
+4. Implement the system call dispatcher: When a system call is invoked, the system call dispatcher is called. This function reads the system call index from the appropriate CPU register, looks up the corresponding function pointer in the system call table, and calls the function with the system call parameters.
+
+Here is some sample code in Rust that demonstrates how to update the system call table and implement a simple system call function:
+
+```rust
+// Define the system call function
+fn my_syscall(params: *mut u64) -> u64 {
+    // Implement the system call logic here
+    return 0; // Return the result of the system call
+}
+
+// Assign an index to the system call
+const MY_SYSCALL_INDEX: u64 = 42;
+
+// Update the system call table
+static mut SYSTEM_CALL_TABLE: [Option<unsafe fn(*mut u64) -> u64>; 256] = [None; 256];
+unsafe {
+    SYSTEM_CALL_TABLE[MY_SYSCALL_INDEX as usize] = Some(my_syscall);
+}
+
+// Implement the system call dispatcher
+#[naked]
+pub unsafe extern "C" fn syscall_dispatcher() {
+    // Read the system call index from the appropriate CPU register
+    let syscall_index: u64;
+    asm!("mov %r10, $0" : "=r" (syscall_index));
+
+    // Look up the corresponding function pointer in the system call table
+    let syscall_fn: unsafe fn(*mut u64) -> u64;
+    syscall_fn = SYSTEM_CALL_TABLE[syscall_index as usize].unwrap();
+
+    // Call the function with the system call parameters
+    let params: *mut u64;
+    asm!("mov %r11, $0" : "=r" (params));
+    let result = syscall_fn(params);
+
+    // Return the result of the system call
+    asm!("mov $0, %rax" : "=r" (result));
+    asm!("ret");
+}
+```
+
+Note that this code is just an example, and it may not work exactly as is in your particular OS. You will need to customize it to fit your specific needs and requirements.

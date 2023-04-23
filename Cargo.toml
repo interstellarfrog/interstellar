@@ -31,3 +31,7 @@ test-timeout = 20 # Seconds
 [[test]]
 name = "should_panic" # For This Test 
 harness = false # Disable Panic Handler
+
+[[test]]
+name = "stack_overflow"
+harness = false
