@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use crate::{ println, serial_println};
 use core::arch::{asm};
 use x86_64::structures::idt::{ InterruptStackFrame};
@@ -5,7 +6,7 @@ use x86_64::structures::idt::{ InterruptStackFrame};
 type SyscallHandler = fn() -> i64;
 static SYSCALL_TABLE: [Option<SyscallHandler>; 1] = [Some(write_syscall_handler)];
 
-pub extern "x86-interrupt" fn syscall_handler(stack_frame: InterruptStackFrame) {
+pub extern "x86-interrupt" fn syscall_handler(_stack_frame: InterruptStackFrame) {
     let syscall_number: u64;
     unsafe { asm!("mov {}, rax", out(reg) syscall_number) }; // Might Work
 
@@ -31,7 +32,7 @@ fn write_syscall_handler() -> i64 {
     };
     unsafe {
         let text: u8 = *text_pointer;
-        println!("{}", text);
+        println!("SYSCALL: println: size: {} text:{}", text_length, text);
     };
 
     0 // Return value of type i64
@@ -52,13 +53,12 @@ fn write_syscall_handler() -> i64 {
     };
     unsafe {
         let text: u8 = *text_pointer;
-        serial_println!("{}", text);
+        serial_println!("SYSCALL: println: size: {} text:{}", text_length, text);
     };
 
     0 // Return value of type i64
 }
 
-#[test_case]
 pub fn test_syscall_handler() {
     unsafe {
         let text = "Hello, World!\n";

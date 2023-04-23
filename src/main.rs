@@ -12,23 +12,22 @@ use interstellar_os::println;
 // This Function Should Be Called _start For LLVM.
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    println!("Now We Can Handle Double Fault Exceptions With A New Double Stack");
+    println!("Now We Can Handle Hardware Interrupts Including The PIC Timer And Keyboard Interrupts");
 
     interstellar_os::init(); // Start Interrupt Descriptor table
 
     #[cfg(test)]
     test_main();
 
-    println!("Now The OS Does Not Crash!");
     #[allow(clippy::empty_loop)]
-    loop {}
+    interstellar_os::hlt_loop(); // Loop Until Next Interrupt - Saves CPU Percentage
 }
 
 #[cfg(not(test))] // If Not In Test
 #[panic_handler] // This function is called on panic.
 fn panic(info: &PanicInfo) -> ! { // The Panic Info Contains Information About The Panic.
     println!("NOT A TEST:{info}");
-    loop {}
+    interstellar_os::hlt_loop();
 }
 
 #[cfg(test)]

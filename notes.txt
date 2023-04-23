@@ -140,6 +140,24 @@ I/O Map Base Address
 This Was Used Before Paging For Memory Management
 "However, it is still needed in 64-bit mode for various things, such as kernel/user mode configuration or TSS loading."
 
+
+# Hardware Interrupts
+Controlled By 2 Interrupt Controllers
+1:
+0x20 = Command Port
+0x21 = Data Port
+2:
+0xa0 = Command Port
+0xa1 = Data Port
+
+We Cannot Use The Default Config Because It Sends Interrupts 0-15
+Which We Have Mapped As Exceptions
+So We Remap It To 32-47
+
+PS2 Controller Data Port = 0x60
+
+
+
 ## System Calls - From Chat GPT
 
 The exact implementation details for setting up a system call interface can vary depending on your operating system and programming language. However, I can give you a general idea of how to do this in Rust.

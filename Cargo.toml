@@ -20,6 +20,11 @@ spin = "0.5.2"
 x86_64 = "0.14.2"
 # This Is Used For Sending Data Over The Serial Port
 uart_16550 = "0.2.0"
+# This Is Used For The Interrupt Controller
+pic8259 = "0.10.1"
+# Used For Translating PS2 Keyboard Scan Codes
+pc-keyboard = "0.7.0"
+
 
 # When Testing Append Args To QUEMU
 [package.metadata.bootimage] 

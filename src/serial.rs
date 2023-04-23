@@ -1,7 +1,8 @@
 use uart_16550::SerialPort;
 use spin::Mutex;
 use lazy_static::lazy_static;
-use core::fmt::Write;
+use core::{fmt::Write};
+use x86_64::instructions::interrupts;
 
 lazy_static! { // Only Init Once On First Use
     pub static ref SERIAL1: Mutex<SerialPort> = { // Wrap In SpinLock
@@ -13,7 +14,12 @@ lazy_static! { // Only Init Once On First Use
 
 #[doc(hidden)]
 pub fn _print(args: ::core::fmt::Arguments) {
-    SERIAL1.lock().write_fmt(args).expect("Serial Print Failed!") // Gets Lock And Writes
+    interrupts::without_interrupts(|| { // Disable Interrupts
+        SERIAL1.lock()
+        .write_fmt(args)
+        .expect("Serial Print Failed!");
+    });
+    
 }
 
 #[macro_export]

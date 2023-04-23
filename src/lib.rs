@@ -7,7 +7,7 @@
 
 
 use core::panic::PanicInfo;
-use x86_64::instructions::port::Port;
+use x86_64::instructions::{port::Port};
 
 pub mod vga_buffer;
 pub mod serial;
@@ -21,7 +21,7 @@ pub mod gdt;
 pub extern "C" fn _start() -> ! {
     init();
     test_main();
-    loop {}
+    hlt_loop(); // Loop Until Next Interrupt - Saves CPU Percentage
 }
 
 
@@ -29,8 +29,16 @@ pub extern "C" fn _start() -> ! {
 pub fn init() { // INITIALIZE The Interrupt Descriptor Table
     gdt::init();
     interrupts::init_idt();
+    unsafe{interrupts::PICS.lock().initialize()}; // Init Hardware Interrupt Controllers
+    x86_64::instructions::interrupts::enable(); // Enable Hardware Interrupts
 }
 
+
+pub fn hlt_loop() -> ! { // Loop Until Next Interrupt - Saves CPU Percentage
+    loop {
+        x86_64::instructions::hlt();
+    }
+}
 
 pub trait Testable {
     fn run(&self) -> ();
@@ -41,9 +49,9 @@ where
     T: Fn(),
 {
     fn run(&self) {
-        serial_print!("{}...\t", core::any::type_name::<T>());
-        self();
-        serial_println!("[ok]");
+        serial_print!("{}...\t", core::any::type_name::<T>()); // Print Function Name
+        self(); // Call The Test
+        serial_println!("[ok]"); // If No Panic
     }
 }
 
@@ -59,7 +67,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
-    loop {}
+    hlt_loop(); // Loop Until Next Interrupt - Saves CPU Percentage
 }
 
 
