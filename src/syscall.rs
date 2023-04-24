@@ -72,7 +72,7 @@ pub fn test_syscall_handler() {
         asm!("lock mov rsi, {}", in(reg) pointer);
         asm!("lock mov rdx, {}", in(reg) text.len());
         println!("SYSCALL");
-        asm!("INT $0x80"); // CAUSES DOUBLE FAULT NO IDEA WHY
+        //asm!("INT $0x80"); // CAUSES DOUBLE FAULT NO IDEA WHY
         println!("SYSCALL");
         asm!("lock mov {}, rcx", out(reg) _);
         asm!("lock mov {}, r11", out(reg) _);

@@ -1,4 +1,4 @@
-use x86_64::{ structures::paging::{PageTable, OffsetPageTable, Mapper, Size4KiB, FrameAllocator, Page, PhysFrame, PageTableFlags as Flags}, VirtAddr, registers::control::Cr3, PhysAddr};
+use x86_64::{ structures::paging::{PageTable, OffsetPageTable, Size4KiB, FrameAllocator, PhysFrame}, VirtAddr, registers::control::Cr3, PhysAddr};
 use bootloader::bootinfo::{MemoryMap, MemoryRegionType};
 
 /// A FrameAllocator that returns usable frames from the bootloader's memory map.
@@ -58,16 +58,4 @@ unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
         self.next += 1;
         frame
     }
-}
-
-
-pub fn create_example_mapping(page: Page, mapper: &mut OffsetPageTable, frame_allocator: &mut impl FrameAllocator<Size4KiB>) {
-    let frame = PhysFrame::containing_address(PhysAddr::new(0xb8000));
-    let flags = Flags::PRESENT | Flags::WRITABLE;
-
-    let map_to_result = unsafe { // For Testing
-        // FIX ME: UNSAFE
-        mapper.map_to(page, frame, flags, frame_allocator)
-    };
-    map_to_result.expect("Map_To Failed").flush(); // If It Fails To Create A Mapping Flush The TLB
 }

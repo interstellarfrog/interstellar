@@ -5,18 +5,22 @@
 #![reexport_test_harness_main = "test_main"] // No Main Makes This Not Run As Behind The Scenes Main Is Called For Testing - So We Change The Name
 
 use core::panic::PanicInfo;
-use interstellar_os::println;
+use interstellar_os::{println, memory, allocator};
 use bootloader::{ BootInfo, entry_point };
-use x86_64::{VirtAddr, structures::paging::Page};
-use interstellar_os::memory;
+use x86_64::{VirtAddr};
+
+
+extern crate alloc;
+
+use alloc::{boxed::Box, vec, vec::Vec, rc::Rc};
 
 // Auto Sets Up _start For Us
 entry_point!(kernel_main); // Fixes Some Error With Types
 
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
-    println!("Now We Can Map Virtual Memory To Physical Memory And Allocate Frames Here We Map The Address 0xdeadbeef000 To 0xb8000 To Print New! To The VGA Buffer");
+    println!("Hello, World!");
 
-    interstellar_os::init(); // Start Interrupt Descriptor table
+    interstellar_os::init(); // Start Interrupt Descriptor table ect.
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
 
@@ -24,17 +28,29 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
         memory::init(phys_mem_offset)
     };
 
-    let mut frame_allocator = unsafe {
-        memory::BootInfoFrameAllocator::init(&boot_info.memory_map) 
-    }; 
+    let mut frame_allocator = 
+        unsafe { memory::BootInfoFrameAllocator::init(&boot_info.memory_map) }; 
 
-    //Map Unused Page
-    let page = Page::containing_address(VirtAddr::new(0xdeadbeef000));
-    memory::create_example_mapping(page, &mut mapper, &mut frame_allocator); // Map Virt Address 0 To 0xb8000
+    allocator::init_heap(&mut mapper, &mut frame_allocator).expect("heap initialization failed");
 
-    let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
-    //We don’t write to the start of the page because the top line of the VGA buffer is directly shifted off the screen by the next println
-    unsafe { page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e) }; // 
+    let heap_value = Box::new(41);
+    println!("heap_value at {:p}", heap_value);
+
+    // create a dynamically sized vector
+    let mut vec = Vec::new();
+    for i in 0..500 {
+        vec.push(i);
+    }
+    println!("vec at {:p}", vec.as_slice());
+
+    // create a reference counted vector -> will be freed when count reaches 0
+    let reference_counted = Rc::new(vec![1, 2, 3]);
+    let cloned_reference = reference_counted.clone();
+    println!("current reference count is {}", Rc::strong_count(&cloned_reference));
+    core::mem::drop(reference_counted);
+    println!("reference count is {} now", Rc::strong_count(&cloned_reference));
+
+
 
     #[cfg(test)]
     test_main();

@@ -49,7 +49,7 @@ extern "x86-interrupt" fn double_fault_handler(
     panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
 }
 
-extern  "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, something: u64,) {
+extern  "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, _something: u64,) {
     println!("EXCEPTION: GENERAL PROTECTION FAULT");
     println!("{:#?}", stack_frame);
     hlt_loop();
