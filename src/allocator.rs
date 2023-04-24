@@ -38,7 +38,7 @@ pub fn init_heap( // Takes In Mapper And Frame Allocator
         };
     }
 
-    unsafe{ ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE); }
+    unsafe{ ALLOCATOR.lock().init(HEAP_START as *mut u8, HEAP_SIZE); }
 
     Ok(())
 }
