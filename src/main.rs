@@ -16,13 +16,19 @@ pub extern "C" fn _start() -> ! {
 
     interstellar_os::init(); // Start Interrupt Descriptor table
 
+
+    use x86_64::registers::control::Cr3;
+
+    let (level_4_page_table, _) = Cr3::read();
+    println!("Level 4 Page Table At: {:?}", level_4_page_table.start_address());
+
     #[cfg(test)]
     test_main();
 
     #[allow(clippy::empty_loop)]
     interstellar_os::hlt_loop(); // Loop Until Next Interrupt - Saves CPU Percentage
 }
-
+// 0x10000201f80
 #[cfg(not(test))] // If Not In Test
 #[panic_handler] // This function is called on panic.
 fn panic(info: &PanicInfo) -> ! { // The Panic Info Contains Information About The Panic.

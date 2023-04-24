@@ -1,7 +1,9 @@
 Sentences in Quotes Are Copied From https://os.phil-opp.com/
 Other Sentences Are Written In My Own Words
 
+////////////////////////////////////////////////////////////////////////////////////
 ## Target Json file
+////////////////////////////////////////////////////////////////////////////////////
 This Is Used To Make A Custom Target For Building The OS As We Want To Run For Bare Metal
 My Build
 host: x86_64-pc-windows-msvc
@@ -29,30 +31,43 @@ To Avoid Linker Errors We Want To Cross Compile Our Code Using Our Custom Target
 # Which Does Cause A Slight Slow Down But Should Be Faster Overall
 "features": "-mmx,-sse,+soft-float",
 
+////////////////////////////////////////////////////////////////////////////////////
 ## VGA Text Mode
+////////////////////////////////////////////////////////////////////////////////////
 Buffer Address Is Located at 0xb8000 for Color - Memory Mapped I/O
 0xb0000 for monochrome
 This Is The Easiest Way Of Printing To The Screen As All We Have To Do Is Write To A Memory Location Which In Turn Actually Writes 
 
+
+////////////////////////////////////////////////////////////////////////////////////
 ## Volatile
+////////////////////////////////////////////////////////////////////////////////////
 In Future Rust Updates The Compiler Might Optimize The Code Even More So Our Writes To The VGA Buffer Might Be Removed By The Compiler
 If It Does Not Think That It Is Needed - It Just Sees That We Are Writing To A Memory Location
 
 "The volatile keyword indicates that a value may change between different accesses, even if it does not appear to be modified."
 "This keyword prevents an optimizing compiler from optimizing away subsequent reads or writes and thus incorrectly reusing a stale value or omitting writes."
 
+
+////////////////////////////////////////////////////////////////////////////////////
 ## Lazy Static
+////////////////////////////////////////////////////////////////////////////////////
 "To provide a global writer that can be used as an interface from other modules without carrying a Writer instance around, we try to create a static WRITER"
 But This Fails Because Rusts Constant evaluator Can't Convert Raw Pointers Into References At Compile Time
 So Instead We Use The Lazy Static Crate
 "Instead of computing its value at compile time, the static lazily initializes itself when accessed for the first time. Thus, the initialization happens at runtime, so arbitrarily complex initialization code is possible."
 
+
+////////////////////////////////////////////////////////////////////////////////////
 ## SpinLock
+////////////////////////////////////////////////////////////////////////////////////
 Used To Manage Access Between Shared Resources
 Can Be Used To Lock A Resource And Other Programs Will Constantly Run A Loop Requesting Access (But It Will Only Run The Programs Loops Seperatly) 
 And When The Program Is Free The Thread/Program Trying To Access It Will Be Given Access
 
+////////////////////////////////////////////////////////////////////////////////////
 ## Testing 
+////////////////////////////////////////////////////////////////////////////////////
 When Running Custom Tests We Add #![reexport_test_harness_main = "test_main"] Because We Are Using No Main Which Also Means No Main For Tests So We Change The Name Then 
 
 Any Tests In Test Folder Will Be Recognized Automatically
@@ -67,8 +82,9 @@ Then We Write A Number To This Port (0 or 1) 1 = "(1 << 1) | 1 = 3" 0 = "(0 << 1
 Which Will Either Exit With Success Or Error
 We Use The x86_64 Crate To Do This
 
-
+////////////////////////////////////////////////////////////////////////////////////
 ## CPU Exceptions
+////////////////////////////////////////////////////////////////////////////////////
 Exceptions Occur In A Bunch Of Different Ways - 0 Division, Accessing Invalid Memory Address ect.
 An Exception Signal Means That Something Isn't Working In Given Instruction
 There Are 32 CPU Exception Types  0 - 31
@@ -113,16 +129,20 @@ Disable hardware interrupts if the entry is an interrupt gate (bit 40 not set).
 Load the specified GDT selector into the CS (code segment).
 Jump to the specified handler function.
 "]
-
+////////////////////////////////////////////////////////////////////////////////////
 ## Double Faults - number 8
+////////////////////////////////////////////////////////////////////////////////////
 Double Faults Happen When The Cpu Fails To Call The First Exception Handler
 Double Faults Are Like Catch All {} - sometimes
 
-
+////////////////////////////////////////////////////////////////////////////////////
 ## Interrupt Stack Table
+////////////////////////////////////////////////////////////////////////////////////
 The IST Is A Table Of Pointers - 7 To Stacks That We Know Are Good Stacks 
 
+////////////////////////////////////////////////////////////////////////////////////
 ## Task State Segment -- Legacy Structure
+////////////////////////////////////////////////////////////////////////////////////
 Was Used To Hold Information About A Task In 32 Bit Mode And For Hardware Context Switching
 But This Is No Longer Supported In 64 Bit Mode
 
@@ -135,14 +155,20 @@ Reserved u64
 Reserved u16
 I/O Map Base Address
 
-
+////////////////////////////////////////////////////////////////////////////////////
 ## Global Descriptor Table
+////////////////////////////////////////////////////////////////////////////////////
 This Was Used Before Paging For Memory Management
 "However, it is still needed in 64-bit mode for various things, such as kernel/user mode configuration or TSS loading."
 
+////////////////////////////////////////////////////////////////////////////////////
+## Hardware Interrupts
+////////////////////////////////////////////////////////////////////////////////////
 
-# Hardware Interrupts
-Controlled By 2 Interrupt Controllers
+Hardware Interrupts Are A Type Of Exception That We Can Handle 
+They Are Used For Keyboards And Other Devices
+
+They Are Controlled By 2 Interrupt Controllers
 1:
 0x20 = Command Port
 0x21 = Data Port
@@ -156,10 +182,198 @@ So We Remap It To 32-47
 
 PS2 Controller Data Port = 0x60
 
+We Read This Port To Get The Scan Codes From The Keyboard And Turn It Into An Ascii Character
+That We Can Print To The Screen
+
+////////////////////////////////////////////////////////////////////////////////////
+## Segmentation -- Legacy Memory Management
+////////////////////////////////////////////////////////////////////////////////////
+Segmentation - When The CPU Is In Protected Mode We Can Isolate Processes Using Segmentation
+
+To Set Up Segmentation There Are Registers Used For This
+
+Virtual Memory - Virtual Memory Is Used As An Abstraction On Top Of The Real Memory
+
+Say If 2 Of The Same Programs Have 150 Memory Each 
+
+programs Virt Mem:
+---------------
+0
+Program 1
+150
+---------------
+0
+Program 2
+150
+---------------
+Real Mem:
+0
+|
+100
+Program 1
+250
+|
+300
+Program 2
+450
+
+Fragmentation
+
+Say If The Programs Are In Real Memory And They Free Some Memory
+
+0
+Free Mem
+100
+Program 1
+250
+Free Mem
+300
+Program 2
+450
+Free Mem
+550
+
+And We Want To Start A Third Program
+But We Cannot Because There Is No Space So Instead We Will Pause Execution And Move All The Memory Together
+
+0
+Program 1
+150
+Program 2
+300
+Program 2
+450
+
+Then We Update The Virtual Memory Translations And Resume Execution
 
 
+
+But This Is Slow And Can Cause Programs To Randomly Freeze
+
+This Is Where Paging Comes In
+
+
+////////////////////////////////////////////////////////////////////////////////////
+## Paging
+////////////////////////////////////////////////////////////////////////////////////
+
+Paging Divides The Virtual And Physical Memory Into Fixed Size Small Blocks
+
+So Then Instead Of Putting Programs Parralel Into Memory We Can Put The Different Pages Of The Programs Into Memory At Any Of The Memory Frames
+And For The Program It Just Looks Like It Is Writting To 0 - 150 In Memory For Example But It Could Be Anywhere
+This Solves The Externel Fragmentation Issue 
+
+But There Is Now Internal Fragmentation Because Say If We Have A Page Size Of 50 Bytes
+And We Have An App That Takes Up 51 Bytes The App Will Still Use 2 Pages 
+But In Using Paging We Save Allot Of Memory
+
+
+To Implement Paging We Need To Add A Pointer To The Page Table In Memory To The CR3 Register
+
+On Each Memory Access The CPU Reads The Pointer To The Page Table And Looks Up The Frame For The Accessed Page
+Many CPU Architectures Have Caches To Speed This Up That Remember The Last Result
+
+Depending On The Architecture The Page Table Can Also Have Attributes Like Permissions For Read/Write
+
+
+Page Tables - Page Tables Are Used To Map The Virtual Memory Address's Into Real One's
+
+The Hardware That Handles The Translation Is Called The MMU (Memory Management Unit)
+
+Each Page Holds A Flag Saying If It Is In Real Memory Or Not
+
+If It Is In Memory The Page Table Contains The Real Memory Address Where At Which The Page Is Stored
+
+If It Is Not In Memory ( In Disk ) A Page Fault Exception Is Invoked
+
+
+Say If A Program Has 4 Pages 0-50, 1_000_000-1_000_050, 1_000_050-1_000_100 , 1_000_100-1_000_150
+Even Though There Is Only 4 Physical Frames For The 4 Pages There Is Over 1 Million Entries On The Single Page Table
+Which Causes A Massive Slow Down Because The CPU Has To Go All The Way Down The Page Table
+To Fix This We Use A Level 2 Page Table
+
+Which Say Maps Every 10_000 Bytes To A level 1 Page Table
+
+And Then We Add A Level 3 And So On
+
+On x86_64 There Are 4 Page Table Levels - On Some New Intel CPU'S (Ice Lake) There Is Space For 5 Which Allow You To Address 128 PB Of Virt Mem Instead Of 256 TB 
+As There Are Actually Only 48 Bits In The Normal 64 Bit CPU's Virtual Address Space 
+
+Each Page Has A Size Of 4 KiB Each
+
+Each Page Table Has 512 Entries
+
+And Each Entry Is 8 Bytes
+
+512 * 8 = 4 KiB Which Is The Same Size As A Page
+
+The Level 4 Page Is Called The Page Map level 4 Table (PML4)
+Which Contains Pointers To A Bunch Of Level 3 Page Tables Called Page Directory Pointer Tables (PDP)
+Which Contain Pointers To The Level 2 Page Tables Called The Page Directory Tables (PD)
+Which Contain Pointers To The Level 1 Page Tables Called The Page Table (PT)
+Which Contains Mappings Of Fake Virtual Address's To Real Memory Address's
+
+
+Each Process Has There Own Page Tables 
+
+The OS Can Switch The Pointers To The Level 4 Page Tables In The CR3 Register To Another Processes Page Table
+
+We Will Need To Implement A Schedular To Do This Later
+
+
+Page Tables Are An Array Of 512 Entries Or In Rust:
+"
+#[repr(align(4096))] // Align On A 4 KiB Boundary So It Allways Fils A Complete Page
+pub struct PageTable {
+    entries: [PageTableEntry; 512],
+}
+"
+
+Each Entry Has 8 Bytes
+
+"
+0	present	the page is currently in memory // Because You Can Write Pages Into The Disk
+1	writable	it’s allowed to write to this page
+2	user accessible	if not set, only kernel mode code can access this page
+3	write-through caching	writes go directly to memory
+4	disable cache	no cache is used for this page
+5	accessed	the CPU sets this bit when this page is used
+6	dirty	the CPU sets this bit when a write to this page occurs
+7	huge page/null	must be 0 in P1 and P4, creates a 1 GiB page in P3, creates a 2 MiB page in P2
+8	global	page isn’t flushed from caches on address space switch (PGE bit of CR4 register must be set)
+9-11	available	can be used freely by the OS
+12-51	physical address	the page aligned 52bit physical address of the frame or the next page table
+52-62	available	can be used freely by the OS
+63	no execute	forbid executing code on this page (the NXE bit in the EFER register must be set)
+"
+
+
+"
+The Translation Lookaside Buffer
+A 4-level page table makes the translation of virtual addresses expensive because each translation requires four memory accesses.
+To improve performance, the x86_64 architecture caches the last few translations in the so-called translation lookaside buffer (TLB). 
+This allows skipping the translation when it is still cached.
+
+Unlike the other CPU caches, the TLB is not fully transparent and does not update or remove translations when the contents of page tables change. 
+This means that the kernel must manually update the TLB whenever it modifies a page table. 
+To do this, there is a special CPU instruction called 
+invlpg (“invalidate page”) that removes the translation for the specified page from the TLB, 
+so that it is loaded again from the page table on the next access. 
+The TLB can also be flushed completely by reloading the CR3 register, which simulates an address space switch. 
+The x86_64 crate provides Rust functions for both variants in the tlb module.
+
+It is important to remember to flush the TLB on each page table modification because otherwise, 
+the CPU might keep using the old translation, 
+which can lead to non-deterministic bugs that are very hard to debug.
+"
+
+Or In Other Words We Need To "flush the TLB on each page table modification because otherwise, 
+the CPU might keep using the old translation"
+
+
+////////////////////////////////////////////////////////////////////////////////////
 ## System Calls - From Chat GPT
-
+////////////////////////////////////////////////////////////////////////////////////
 The exact implementation details for setting up a system call interface can vary depending on your operating system and programming language. However, I can give you a general idea of how to do this in Rust.
 
 Here's a high-level overview of the steps involved:
