@@ -5,6 +5,11 @@
 #![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
 
+#[cfg(test)]
+use bootloader::{ entry_point, BootInfo };
+
+#[cfg(test)]
+entry_point!(test_kernel_main);
 
 use core::panic::PanicInfo;
 use x86_64::instructions::{port::Port};
@@ -14,11 +19,12 @@ pub mod serial;
 pub mod interrupts;
 pub mod syscall;
 pub mod gdt;
+pub mod memory;
 
 /// Entry point for `cargo test`
 #[cfg(test)]
 #[no_mangle]
-pub extern "C" fn _start() -> ! {
+ fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     init();
     test_main();
     hlt_loop(); // Loop Until Next Interrupt - Saves CPU Percentage

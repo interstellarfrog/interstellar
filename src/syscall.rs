@@ -64,20 +64,21 @@ pub fn test_syscall_handler() {
         let text = "Hello, World!\n";
         let pointer = text.as_ptr();
         let ret: i32;
-        serial_println!("inside of test_syscall_handler");
+        println!("inside of test_syscall_handler");
         
         
-        asm!("mov rax, {0:r}", in(reg) 0);
-        asm!("mov rdi, {0:r}", in(reg) 1);
-        asm!("mov rsi, {}", in(reg) pointer);
-        asm!("mov rdx, {}", in(reg) text.len());
-        serial_println!("SYSCALL");
-        asm!("int 0x80"); // BREAKS THE CODE PROBABLY BECAUSE INTERRUPTS NOT TURNED ON YET
-        serial_println!("SYSCALL");
-        asm!("mov {}, rcx", out(reg) _);
-        asm!("mov {}, r11", out(reg) _);
-        asm!("mov {0:r}, rax", lateout(reg) ret);
-        serial_println!("{}", ret);
+        asm!("lock mov rax, {0:r}", in(reg) 0);
+        asm!("lock mov rdi, {0:r}", in(reg) 1);
+        asm!("lock mov rsi, {}", in(reg) pointer);
+        asm!("lock mov rdx, {}", in(reg) text.len());
+        println!("SYSCALL");
+        asm!("INT $0x80"); // CAUSES DOUBLE FAULT NO IDEA WHY
+        println!("SYSCALL");
+        asm!("lock mov {}, rcx", out(reg) _);
+        asm!("lock mov {}, r11", out(reg) _);
+        asm!("lock mov {0:r}, rax", lateout(reg) ret);
+        println!("{}", ret);
     }
     
 }
+

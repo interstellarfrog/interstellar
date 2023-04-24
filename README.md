@@ -1,5 +1,5 @@
 # interstellar_os
-This Is My OS That I Am Making Whilst Learning About Rust Systems Programing
+This Is My OS That I Am Making Whilst Learning About Rust x86_64 Systems Programing
 
 ## Manually Building
 As Far As I Know All You Need To Do To Build This Manually Is Run These Commands: rustup toolchain install nightly && rustup override set nightly && cargo install bootimage && rustup component add llvm-tools-preview

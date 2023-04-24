@@ -16,15 +16,21 @@ pub enum InterruptIndex {
 }
 
 lazy_static! { // Needs To Live For Life Of Program And Only Init When Needed
+    
     static ref IDT: InterruptDescriptorTable = {
+        
         let mut idt = InterruptDescriptorTable::new(); // Make New IDT
         idt.breakpoint.set_handler_fn(breakpoint_handler); // Breakpoint Exception Handler
         idt.double_fault.set_handler_fn(double_fault_handler); // Double Fault Handler
+        //idt.divide_error.set_handler_fn(divide_by_zero_handler);
+        //idt.invalid_opcode.set_handler_fn(invalif_opcode_handler);
+        idt.general_protection_fault.set_handler_fn(general_protection_fault_handler);
         unsafe { idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX); } // Set Stack To Switch To
         idt.page_fault.set_handler_fn(page_fault_handler);
+        idt.non_maskable_interrupt.set_handler_fn(non_masked_interrupt_handler);
         idt[InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt); // Timer Interrupt Handler
         idt[InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler); // Keyboard Interrupt Handler
-        // BROKEN idt[80].set_handler_fn(syscall::syscall_handler); // When 0x80 Called 
+        idt[80].set_handler_fn(crate::syscall::syscall_handler); // When 0x80 Called 
         idt
     };
 }
@@ -43,6 +49,12 @@ extern "x86-interrupt" fn double_fault_handler(
     panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
 }
 
+extern  "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, something: u64,) {
+    println!("EXCEPTION: GENERAL PROTECTION FAULT");
+    println!("{:#?}", stack_frame);
+    hlt_loop();
+}
+
 extern  "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode,) {
     println!("EXCEPTION: PAGE FAULT");
     println!("Accessed Address: {:?}", Cr2::read()); // CR2 Contains Accessed Virtual Address 
@@ -50,6 +62,15 @@ extern  "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, 
     println!("{:#?}", stack_frame);
     hlt_loop();
 }
+
+
+
+extern  "x86-interrupt" fn non_masked_interrupt_handler(stack_frame: InterruptStackFrame,) {
+    println!("EXCEPTION: Non Masked Interrupt");
+    println!("{:#?}", stack_frame);
+    hlt_loop();
+}
+
 
 
 pub const PIC_1_OFFSET: u8 = 32;

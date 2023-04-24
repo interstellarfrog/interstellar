@@ -371,6 +371,11 @@ Or In Other Words We Need To "flush the TLB on each page table modification beca
 the CPU might keep using the old translation"
 
 
+The Bootloader Crate Has Already Added Paging For Us 
+But For The Kernel To Access Real Address's We Need To Map The Physical Memory
+To Some Unused Virtual Address Range 
+
+
 ////////////////////////////////////////////////////////////////////////////////////
 ## System Calls - From Chat GPT
 ////////////////////////////////////////////////////////////////////////////////////
