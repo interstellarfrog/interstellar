@@ -13,6 +13,7 @@ use pc_keyboard::{ layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1 };
 pub enum InterruptIndex {
     Timer = PIC_1_OFFSET,
     Keyboard, // PIC_1_OFFSET + 1
+    SYSCALL = 80_u8,
 }
 
 lazy_static! { // Needs To Live For Life Of Program And Only Init When Needed
@@ -22,15 +23,17 @@ lazy_static! { // Needs To Live For Life Of Program And Only Init When Needed
         let mut idt = InterruptDescriptorTable::new(); // Make New IDT
         idt.breakpoint.set_handler_fn(breakpoint_handler); // Breakpoint Exception Handler
         idt.double_fault.set_handler_fn(double_fault_handler); // Double Fault Handler
-        //idt.divide_error.set_handler_fn(divide_by_zero_handler);
-        //idt.invalid_opcode.set_handler_fn(invalif_opcode_handler);
+        idt.divide_error.set_handler_fn(divide_by_zero_fault_handler);
+        idt.invalid_opcode.set_handler_fn(invalid_opcode_fault_handler);
         idt.general_protection_fault.set_handler_fn(general_protection_fault_handler);
+        idt.invalid_tss.set_handler_fn(invalid_tss_fault_handler);
+        idt.security_exception.set_handler_fn(security_exception_fault_handler);
         unsafe { idt.double_fault.set_handler_fn(double_fault_handler).set_stack_index(gdt::DOUBLE_FAULT_IST_INDEX); } // Set Stack To Switch To
         idt.page_fault.set_handler_fn(page_fault_handler);
         idt.non_maskable_interrupt.set_handler_fn(non_masked_interrupt_handler);
         idt[InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt); // Timer Interrupt Handler
         idt[InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler); // Keyboard Interrupt Handler
-        idt[80].set_handler_fn(crate::syscall::syscall_handler); // When 0x80 Called 
+        idt[0x80].set_handler_fn(crate::syscall::syscall_handler); // When 0x80 Called 
         idt
     };
 }
@@ -49,11 +52,34 @@ extern "x86-interrupt" fn double_fault_handler(
     panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
 }
 
+extern "x86-interrupt" fn divide_by_zero_fault_handler(
+    stack_frame: InterruptStackFrame)
+{
+    panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
+}
+
+extern "x86-interrupt" fn invalid_opcode_fault_handler(
+    stack_frame: InterruptStackFrame)
+{
+    panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
+}
+
+
+
 extern  "x86-interrupt" fn general_protection_fault_handler(stack_frame: InterruptStackFrame, _something: u64,) {
     println!("EXCEPTION: GENERAL PROTECTION FAULT");
     println!("{:#?}", stack_frame);
     hlt_loop();
 }
+
+extern  "x86-interrupt" fn invalid_tss_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    panic!("EXCEPTION: Invalid TSS\n{:#?}", stack_frame)
+}
+
+extern  "x86-interrupt" fn security_exception_fault_handler(stack_frame: InterruptStackFrame, _error_code: u64) {
+    panic!("EXCEPTION: Security Exception\n{:#?}", stack_frame)
+}
+
 
 extern  "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame, error_code: PageFaultErrorCode,) {
     println!("EXCEPTION: PAGE FAULT");

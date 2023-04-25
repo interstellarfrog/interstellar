@@ -28,7 +28,7 @@ extern crate alloc;
 /// Entry point for `cargo test`
 #[cfg(test)]
 #[no_mangle]
- fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
+fn test_kernel_main(_boot_info: &'static BootInfo) -> ! {
     init();
     test_main();
     hlt_loop(); // Loop Until Next Interrupt - Saves CPU Percentage
