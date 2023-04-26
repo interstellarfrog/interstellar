@@ -18,13 +18,21 @@ pub fn interrupts_enabled() -> bool {
 
 #[inline]
 pub fn interrupts_enable() {
-    unsafe { asm!("sti", options(nomem, nostack)) }
+    unsafe { asm!("sti", options(nomem, nostack)); }
 }
 
 #[inline]
-pub fn interrupts_disable() {
-    unsafe{ asm!("cli", options(nomem, nostack)) }
+pub fn interrupts_enable_and_hlt() {
+    unsafe{ asm!("sti; hlt", options(nomem, nostack)); }
 }
+
+
+
+#[inline]
+pub fn interrupts_disable() {
+    unsafe{ asm!("cli", options(nomem, nostack)); }
+}
+
 
 #[inline]
 pub fn interrupts_without<F, R>(f: F) -> R
@@ -42,13 +50,24 @@ where
     }
 }
 
+pub fn hlt() {
+    unsafe { asm!("hlt", options(nomem, nostack, preserves_flags)); }
+}
+
+#[inline]
+pub fn hlt_loop() -> ! { // Loop Until Next Interrupt - Saves CPU Percentage
+    loop {
+        unsafe { asm!("hlt", options(nomem, nostack, preserves_flags)); }
+    }
+}
+
 #[inline]
 pub fn exception_breakpoint() {
-    unsafe{ asm!("int3", options(nomem, nostack)) }
+    unsafe{ asm!("int3", options(nomem, nostack)); }
 }
 
 
 #[inline]
 pub fn nop() {
-    unsafe{ asm!("nop", options(nomem, nostack, preserves_flags)) }
+    unsafe{ asm!("nop", options(nomem, nostack, preserves_flags)); }
 }

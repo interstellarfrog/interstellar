@@ -5,8 +5,7 @@ use x86_64::registers::control::Cr2;
 use crate::{println, print, gdt, hlt_loop};
 use lazy_static::lazy_static;
 use pic8259::ChainedPics;
-use spin::{self, Mutex};
-use pc_keyboard::{ layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1 };
+use spin::{self};
 
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
@@ -123,25 +122,10 @@ extern "x86-interrupt" fn timer_interrupt(_stack_frame: InterruptStackFrame) {
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
 
-
-    lazy_static! {
-        static ref KEYBOARD: Mutex<Keyboard<layouts::Uk105Key, ScancodeSet1>> =
-        Mutex::new(Keyboard::new(ScancodeSet1::new(), layouts::Uk105Key  ,HandleControl::Ignore));
-    }
-
-    let mut keyboard = KEYBOARD.lock(); // Get Lock
     let mut port = Port::new(0x60); // Get PS2 Data Port 
     let scancode: u8 = unsafe { port.read() }; // Read Scan Code From Port
+    crate::task::keyboard::add_scancode(scancode);
 
-
-    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) { // Gets The Key Event
-        if let Some(key) = keyboard.process_keyevent(key_event) { // Turns Key Events Into Unicode And Handles If A Character Is Capital Or Not
-            match key {
-                DecodedKey::Unicode(character) => print!("{}", character), // If Unicode
-                DecodedKey::RawKey(key) => print!("{:?}", key), // If Raw Debug Print
-            }
-        }
-    }
     unsafe {PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8())} // Tell It We Are Done
 }
 

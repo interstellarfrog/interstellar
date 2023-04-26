@@ -26,6 +26,13 @@ pic8259 = "0.10.1"
 pc-keyboard = "0.7.0"
 # Used For Allocation
 linked_list_allocator = "0.10.2"
+# Used For MultiTasking
+crossbeam-queue = { version = "0.2.1", default-features = false, features = ["alloc"] }
+# Used For One Time Init Of Static Values
+conquer-once = { version = "0.2.0", default-features = false }
+# Used For MultiTasking
+futures-util = { version = "0.3.4", default-features = false, features = ["alloc"] }
+
 
 
 # When Testing Append Args To QUEMU

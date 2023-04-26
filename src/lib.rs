@@ -16,6 +16,7 @@ entry_point!(test_kernel_main);
 use core::panic::PanicInfo;
 use x86_64::instructions::{port::Port};
 use core::arch::asm;
+use assembly::hlt_loop;
 
 pub mod vga_buffer;
 pub mod serial;
@@ -25,6 +26,7 @@ pub mod gdt;
 pub mod memory;
 pub mod allocator;
 pub mod assembly;
+pub mod task;
 
 extern crate alloc;
 
@@ -46,12 +48,6 @@ pub fn init() { // INITIALIZE The Interrupt Descriptor Table
     unsafe { asm!("sti", options(nomem, nostack)) } // Enable Hardware Interrupts
 }
 
-#[inline]
-pub fn hlt_loop() -> ! { // Loop Until Next Interrupt - Saves CPU Percentage
-    loop {
-        unsafe { asm!("hlt", options(nomem, nostack, preserves_flags)) }
-    }
-}
 
 pub trait Testable {
     fn run(&self) -> ();
