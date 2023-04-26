@@ -1,16 +1,17 @@
-use alloc::alloc::{GlobalAlloc, Layout};
-use core::ptr::null_mut;
 use x86_64::{
     structures::paging::{
         mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB,
     },
     VirtAddr,
 };
+use fixed_size_block::FixedSizeBlockAllocator;
 
-use linked_list_allocator::LockedHeap;
+pub mod bump;
+pub mod linked_list;
+pub mod fixed_size_block;
 
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
 pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
@@ -38,20 +39,44 @@ pub fn init_heap( // Takes In Mapper And Frame Allocator
         };
     }
 
-    unsafe{ ALLOCATOR.lock().init(HEAP_START as *mut u8, HEAP_SIZE); }
+    unsafe{ ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE); }
 
     Ok(())
 }
 
 
-pub struct Dummy;
 
-unsafe impl GlobalAlloc for Dummy {
-    unsafe fn alloc(&self, _layout: Layout) -> *mut u8 {
-        null_mut()
+
+// A Wrapper Around spin::Mutex To Permit Trait Implementations
+pub struct Locked<A> {
+    inner: spin::Mutex<A>,
+}
+
+impl<A> Locked<A> {
+    pub const fn new(inner: A) -> Self {
+        Locked {
+            inner: spin::Mutex::new(inner),
+        }
     }
 
-    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
-        panic!("dealloc should be never called")
+    pub fn lock(&self) -> spin::MutexGuard<A> {
+        self.inner.lock()
     }
 }
+
+// Align Address To Alignment
+// Align Needs To Be A Power Of 2
+fn align_up(addr: usize, align: usize) -> usize {
+    (addr + align - 1) & !(align - 1) // Bitwise Operations 
+}
+// An Easier To Understand Version
+/*
+fn align_up(addr: usize, align: usize) -> usize {
+    let remainder = addr % align;
+    if remainder == 0 {
+        addr // addr already aligned
+    } else {
+        addr - remainder + align
+    }
+}
+ */

@@ -10,5 +10,5 @@ Look At The Unpublished Edition 3 Of Blog-OS
 
 Fix System Calls - When Reading From Register "rax" The Value Changes Randomly 
 And Removing Code Sometimes Changes The Values Of The Register
-I Think This Is Caused By The Pointers Being Passed Through The Registers 
-Point To Virtual Memory
+
+Look Into Buddy Allocators And Slab Allocators

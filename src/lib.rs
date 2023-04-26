@@ -5,6 +5,7 @@
 #![reexport_test_harness_main = "test_main"]
 #![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
+#![feature(const_mut_refs)]
 
 #[cfg(test)]
 use bootloader::{ entry_point, BootInfo };
@@ -14,6 +15,7 @@ entry_point!(test_kernel_main);
 
 use core::panic::PanicInfo;
 use x86_64::instructions::{port::Port};
+use core::arch::asm;
 
 pub mod vga_buffer;
 pub mod serial;
@@ -22,6 +24,7 @@ pub mod syscall;
 pub mod gdt;
 pub mod memory;
 pub mod allocator;
+pub mod assembly;
 
 extern crate alloc;
 
@@ -40,13 +43,13 @@ pub fn init() { // INITIALIZE The Interrupt Descriptor Table
     gdt::init();
     interrupts::init_idt();
     unsafe{interrupts::PICS.lock().initialize()}; // Init Hardware Interrupt Controllers
-    x86_64::instructions::interrupts::enable(); // Enable Hardware Interrupts
+    unsafe { asm!("sti", options(nomem, nostack)) } // Enable Hardware Interrupts
 }
 
-
+#[inline]
 pub fn hlt_loop() -> ! { // Loop Until Next Interrupt - Saves CPU Percentage
     loop {
-        x86_64::instructions::hlt();
+        unsafe { asm!("hlt", options(nomem, nostack, preserves_flags)) }
     }
 }
 

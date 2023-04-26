@@ -1,8 +1,8 @@
 #[allow(unused_imports)]
 use crate::{ println, serial_println};
-use core::{arch::{asm}};
-use x86_64::structures::idt::{ InterruptStackFrame};
 
+use x86_64::structures::idt::{ InterruptStackFrame};
+use core::arch::asm;
 
 type SyscallHandler = fn() -> i64;
 static SYSCALL_TABLE: [Option<SyscallHandler>; 1] = [Some(write_syscall_handler)];
@@ -11,19 +11,23 @@ static SYSCALL_TABLE: [Option<SyscallHandler>; 1] = [Some(write_syscall_handler)
 // Causes Strange Behavior
 pub extern "x86-interrupt" fn syscall_handler(_stack_frame: InterruptStackFrame) {
     println!("SYSCALL HANDLER: Started");
-    let mut syscall_numbeer: u64;
+    let mut syscall_number: i32;
     unsafe { 
-        asm!("mov {0:r}, rax", out(reg) syscall_numbeer); 
-    println!("SYSCALL: NUMBER: {}", syscall_numbeer);
-
-    if let Some(syscall_handler_fn) = SYSCALL_TABLE[syscall_numbeer as usize] {
+        asm!("mov {0:r}, rax", out(reg) syscall_number);
+    println!("SYSCALL: NUMBER: {}", syscall_number);
+    if syscall_number != 1 {
+        println!("Invalid Syscall Number");
+    } else {
+    if let Some(syscall_handler_fn) = SYSCALL_TABLE[syscall_number as usize] {
         println!("SYSCALL HANDLER: Calling Function");
         let result = syscall_handler_fn();
          asm!("mov rax, {}", in(reg) result) 
     } else {
-        println!("SYSCALL NUMBER: {} INVALID", syscall_numbeer)
+        println!("SYSCALL NUMBER: {} INVALID", syscall_number)
     }
+}
 };
+
 }
 #[cfg(not(test))]
 fn write_syscall_handler() -> i64 {
@@ -120,4 +124,23 @@ pub fn test_syscall_handler() {
         println!("{}", ret);
     }
     
+}
+
+
+pub fn new_test_syscall_handler() {
+    let buf = "Hello From Asm!\n";
+    let ret: i32;
+    unsafe {
+        asm!("int 0x80",
+        in("rax") 1,
+        in("rdi") 1,
+        in("rsi") buf.as_ptr(),
+        in("rdx") buf.len(),
+        out("rcx") _,
+        out("r11") _,
+        lateout("rax") ret,
+    );
+    }
+
+    println!("write returned: {}", ret)
 }
