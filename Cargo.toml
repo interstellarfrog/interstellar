@@ -27,6 +27,7 @@ pc-keyboard = "0.7.0"
 # Used For Allocation
 linked_list_allocator = "0.10.2"
 # Used For MultiTasking
+crossbeam-utils = { version = "0.8.15", default-features = false}
 crossbeam-queue = { version = "0.2.3", default-features = false, features = ["alloc"] }
 # Used For One Time Init Of Static Values
 conquer-once = { version = "0.3.2", default-features = false }
