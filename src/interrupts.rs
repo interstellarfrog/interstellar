@@ -12,13 +12,13 @@ use spin::{self};
 pub enum InterruptIndex {
     Timer = PIC_1_OFFSET,
     Keyboard, // PIC_1_OFFSET + 1
+    Mouse = PIC_1_OFFSET + 12,
     SYSCALL = 80_u8,
 }
 
 lazy_static! { // Needs To Live For Life Of Program And Only Init When Needed
     
     static ref IDT: InterruptDescriptorTable = {
-        
         let mut idt = InterruptDescriptorTable::new(); // Make New IDT
         idt.breakpoint.set_handler_fn(breakpoint_handler); // Breakpoint Exception Handler
         idt.double_fault.set_handler_fn(double_fault_handler); // Double Fault Handler
@@ -32,6 +32,7 @@ lazy_static! { // Needs To Live For Life Of Program And Only Init When Needed
         idt.non_maskable_interrupt.set_handler_fn(non_masked_interrupt_handler);
         idt[InterruptIndex::Timer.as_usize()].set_handler_fn(timer_interrupt); // Timer Interrupt Handler
         idt[InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler); // Keyboard Interrupt Handler
+        idt[InterruptIndex::Mouse.as_usize()].set_handler_fn(mouse_interrupt_handler); // PS2 Mouse
         idt[0x80].set_handler_fn(crate::syscall::syscall_handler); // When 0x80 Called 
         idt
     };
@@ -116,7 +117,6 @@ impl InterruptIndex {
 }
 
 extern "x86-interrupt" fn timer_interrupt(_stack_frame: InterruptStackFrame) {
-    print!(".");
     unsafe {PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8())} // Tell It We Are Done
 }
 
@@ -129,7 +129,13 @@ extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStac
     unsafe {PICS.lock().notify_end_of_interrupt(InterruptIndex::Keyboard.as_u8())} // Tell It We Are Done
 }
 
-
+extern "x86-interrupt" fn mouse_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    println!("MOUSE INTERRUPT");
+    let mut port = Port::new(0x60);
+    let port_info: u8 = unsafe { port.read() };
+    println!("PORT INFO: {}", port_info);
+    unsafe { PICS.lock().notify_end_of_interrupt(InterruptIndex::Mouse.as_u8()) }
+}
 
 #[test_case]
 fn test_breakpoint_exception() {

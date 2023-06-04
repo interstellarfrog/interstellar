@@ -18,6 +18,7 @@ use x86_64::instructions::{port::Port};
 use core::arch::asm;
 use assembly::hlt_loop;
 
+
 pub mod vga_buffer;
 pub mod serial;
 pub mod interrupts;
@@ -27,6 +28,8 @@ pub mod memory;
 pub mod allocator;
 pub mod assembly;
 pub mod task;
+pub mod console;
+pub mod tests;
 
 extern crate alloc;
 

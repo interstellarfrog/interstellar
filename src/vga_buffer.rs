@@ -1,10 +1,10 @@
-use volatile::Volatile;
+use alloc::string::String;
 use core::fmt;
-use core::fmt::{ Write, Result};
+use core::fmt::{Result, Write};
 use lazy_static::lazy_static;
 use spin::Mutex;
+use volatile::Volatile;
 use x86_64::instructions::interrupts;
-
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,7 +31,7 @@ pub enum Color {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
-struct ColorCode(u8);
+pub struct ColorCode(u8);
 
 impl ColorCode {
     // Returns The ColorCode For The Given Background and Foreground Colors
@@ -45,29 +45,35 @@ impl ColorCode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(C)] // C Style Struct - Field Ordering
-struct ScreenChar {
-    ascii_character: u8,
-    color_code: ColorCode,
+pub struct ScreenChar {
+    pub ascii_character: u8,
+    pub color_code: ColorCode,
 }
 
-const BUFFER_HEIGHT: usize = 25;
-const BUFFER_WIDTH: usize = 80;
+pub const BUFFER_HEIGHT: usize = 25;
+pub const BUFFER_WIDTH: usize = 80;
 
 #[repr(transparent)]
-struct Buffer {
-    chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT], // Make This Volatile - Dont Optimize This Away
+pub struct Buffer {
+    pub chars: [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT], // Make This Volatile - Dont Optimize This Away
 }
 
 pub struct Writer {
     column_position: usize,
+    row: usize,
     color_code: ColorCode,
     buffer: &'static mut Buffer, // Static Reference To The Buffer
+    rainbow: bool, // For Rainbow Mode In Command Line
+    rainbow_index: usize, // For Rainbow Mode
 }
 lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column_position: 0,
+        row: 0,
         color_code: ColorCode::new(Color::LightBlue, Color::Black),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
+        rainbow: false, // Wether Rainbow Mode Is Enabled Or Not
+        rainbow_index: 0, // The Color Index Rainbow Mode Uses
     });
 }
 
@@ -83,17 +89,60 @@ impl Writer {
                     self.new_line(); // Then Move To The New Line
                 }
 
-                let row = BUFFER_HEIGHT - 1; // Get The Row Position
+                let row = self.row;
+
                 let col = self.column_position; // Get The Column Position
 
-                let color_code = self.color_code; // Get The Color Code
-                self.buffer.chars[row][col].write(ScreenChar { // Volatile Write
-                    // Set The Character In The Buffer
-                    ascii_character: byte, // The Byte
-                    color_code,            // The Color Code
-                });
+                if self.rainbow {
+
+                    if self.rainbow_index == 0 {
+                        self.rainbow_index += 1;
+                    }
+
+                    self.buffer.chars[row][col].write(ScreenChar {
+                        ascii_character: byte,
+                        color_code: ColorCode((0 as u8) << 4 | (self.rainbow_index as u8)),
+                    });
+                    self.rainbow_index += 1;
+                    if self.rainbow_index == 16 {
+                        self.rainbow_index = 0;
+                    }
+                } else {
+                    let color_code = self.color_code;
+
+                    self.buffer.chars[row][col].write(ScreenChar {
+                        // Volatile Write
+                        // Set The Character In The Buffer
+                        ascii_character: byte, // The Byte
+                        color_code,            // The Color Code
+                    });
+                }
+
                 self.column_position += 1; // Increment The Column Position After Writing The Character
             }
+        }
+    }
+
+    pub fn delete_char(&mut self) {
+        let row = self.row;
+
+        let col = self.column_position;
+
+        self.buffer.chars[row][col - 1].write(ScreenChar {
+            ascii_character: b' ',
+            color_code: self.color_code,
+        });
+        self.column_position -= 1;
+    }
+
+    pub fn read_line(&mut self) {
+        let mut line = String::from("");
+
+        let row = self.row;
+
+        for i in 0..BUFFER_WIDTH {
+            let x = self.buffer.chars[row][i].read();
+            line.push(char::from(x.ascii_character));
         }
     }
 
@@ -106,29 +155,80 @@ impl Writer {
         }
     }
 
-    fn new_line(&mut self) {
-        for row in 1..BUFFER_HEIGHT { // Row 0 Is Moved Off Screen So No Need To Count This
-            for col in 0..BUFFER_WIDTH { // For Every Char
-                let character = self.buffer.chars[row][col].read(); // Read Char Pos
-                self.buffer.chars[row - 1][col].write(character); // Write Char To One Line Up
+    pub fn new_line(&mut self) {
+        // If We Have Reached The End Of The Screen
+        if self.row == BUFFER_HEIGHT - 1 {
+
+            // We Want To Shift Every Line Up Instead
+            let row_end = BUFFER_HEIGHT;
+            let row_start = 1;
+
+            // Move Every Row up By One From The Bottom Except From The 0th Because That Is Overwriten
+            for row in row_start..row_end {
+                // Row 1..24
+                for col in 0..BUFFER_WIDTH {
+                    // Col 0..25
+                    let character = self.buffer.chars[row][col].read(); // Row 1 col 0
+
+                    // Get row_Pos To Move Char To - 1 Pos which is up
+                    let pos = row - 1;
+
+                    self.buffer.chars[pos][col].write(character); // Write Char To One Line Off - 1
+                }
             }
+
+            let clear_row = self.row;
+            self.clear_row(clear_row);
+        } else {
+            self.row += 1;
         }
-        self.clear_row(BUFFER_HEIGHT - 1);
+
         self.column_position = 0;
     }
-    fn clear_row(&mut self, row: usize) { // Does What It Says
-        let blank = ScreenChar { // Blank ScreenChar
+    pub fn clear_row(&mut self, row: usize) {
+        // Does What It Says
+        let blank = ScreenChar {
+            // Blank ScreenChar
             ascii_character: b' ',
             color_code: self.color_code,
         };
-        for col in 0..BUFFER_WIDTH { // For Every Char In Given Row
+        for col in 0..BUFFER_WIDTH {
+            // For Every Char In Given Row
             self.buffer.chars[row][col].write(blank) // Write Blank Char
         }
     }
+
+    pub fn clear_screen_chars(&mut self) {
+        let blank = ScreenChar {
+            // Blank ScreenChar
+            ascii_character: b' ',
+            color_code: self.color_code,
+        };
+
+        for row in 0..BUFFER_HEIGHT {
+            for col in 0..BUFFER_WIDTH {
+                self.buffer.chars[row][col].write(blank)
+            }
+        }
+        self.write_string("Neutron> ");
+    }
+
+    pub fn return_row(&mut self) -> usize {
+        return self.row;
+    }
+    pub fn rainbow_toggle(&mut self) {
+        if self.rainbow {
+            self.rainbow = false;
+        } else {
+            self.rainbow = true;
+        }
+    }
+
 }
 
 impl Write for Writer {
-    fn write_str(&mut self, s: &str) -> Result { // Formatted
+    fn write_str(&mut self, s: &str) -> Result {
+        // Formatted
         self.write_string(s);
         Ok(())
     }
@@ -148,11 +248,11 @@ macro_rules! println { // Calls print! macro but adds newline
 
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
-    interrupts::without_interrupts(|| {  // Stops DeadLocks
-    WRITER.lock().write_fmt(args).unwrap();
-});
+    interrupts::without_interrupts(|| {
+        // Stops DeadLocks
+        WRITER.lock().write_fmt(args).unwrap();
+    });
 }
-
 
 //--------------------------------------------------------------------------
 

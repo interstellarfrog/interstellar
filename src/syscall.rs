@@ -68,7 +68,6 @@ fn write_syscall_handler() -> i64 {
             "mov rdx, {}", out(reg) text_length
         );
     };
-    serial_println!("SYSCALL: WRITE: Dereferencing Raw Pointer");
     unsafe {
         let text: u8 = *text_pointer;
         serial_println!("CALL println: size: {} text:{}", text_length, text);

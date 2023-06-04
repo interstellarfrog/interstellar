@@ -12,3 +12,11 @@ Fix System Calls - When Reading From Register "rax" The Value Changes Randomly
 And Removing Code Sometimes Changes The Values Of The Register
 
 Look Into Buddy Allocators And Slab Allocators
+
+add tests
+
+read filesystem
+
+fix console
+
+make a debug module
