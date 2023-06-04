@@ -28,10 +28,10 @@ pub async fn print_keypresses() {
         if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
             // If Enter Key Pressed
             if key_event == KeyEvent::new(KeyCode::Return, pc_keyboard::KeyState::Down) {
-
+                // Buffer Pointer
                 let buffer = unsafe { &mut *(0xb8000 as *mut Buffer) };
-
                 let writer = &WRITER;
+                // Get Current Row
                 let row = writer.lock().return_row();
 
                 let mut line = String::from("");
@@ -55,6 +55,11 @@ pub async fn print_keypresses() {
             } else if key_event == KeyEvent::new(KeyCode::Backspace, pc_keyboard::KeyState::Down) {
                 let writer = &WRITER;
                 writer.lock().delete_char();
+
+                let col = &(writer.lock().return_col() as u16);
+                let row = &(writer.lock().return_row() as u16);
+                
+                writer.lock().update_cursor(col, row);
 
             } else {
                 if let Some(key) = keyboard.process_keyevent(key_event) {

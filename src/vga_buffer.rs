@@ -5,6 +5,7 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
 use x86_64::instructions::interrupts;
+use core::arch::asm;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,6 +63,7 @@ pub struct Writer {
     column_position: usize,
     row: usize,
     color_code: ColorCode,
+    background: Color,
     buffer: &'static mut Buffer, // Static Reference To The Buffer
     rainbow: bool, // For Rainbow Mode In Command Line
     rainbow_index: usize, // For Rainbow Mode
@@ -71,6 +73,7 @@ lazy_static! {
         column_position: 0,
         row: 0,
         color_code: ColorCode::new(Color::LightBlue, Color::Black),
+        background: Color::Black,
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
         rainbow: false, // Wether Rainbow Mode Is Enabled Or Not
         rainbow_index: 0, // The Color Index Rainbow Mode Uses
@@ -153,6 +156,12 @@ impl Writer {
                 _ => self.write_byte(0xfe), // Else Write The Byte 0xFE - INVALID CHARACTER
             }
         }
+
+        let col = self.column_position as u16;
+        let row = self.row as u16;
+
+
+        self.update_cursor(&col, &row);
     }
 
     pub fn new_line(&mut self) {
@@ -223,6 +232,25 @@ impl Writer {
             self.rainbow = true;
         }
     }
+    pub fn update_cursor(&mut self, x: &u16, y: &u16) {
+        let pos: u16 = y * BUFFER_WIDTH as u16 + x;
+    
+        unsafe {
+            asm!("out dx, al", in("dx") 0x3D4, in("al") 0x0F as i8);
+            asm!("out dx, al", in("dx") 0x3D5, in("al") (pos & 0xFF) as u8);
+            asm!("out dx, al", in("dx") 0x3D4, in("al") 0x0E as i8);
+            asm!("out dx, al", in("dx") 0x3D5, in("al") ((pos >> 8) & 0xFF) as u8);
+        }
+    }
+
+    pub fn return_col(&mut self) -> usize {
+        return self.column_position;
+    }
+
+    pub fn change_color(&mut self, color: Color) {
+        self.color_code = ColorCode::new(color, self.background);
+    }
+
 
 }
 

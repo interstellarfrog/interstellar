@@ -52,7 +52,7 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 #[panic_handler] 
 // This function is called on panic.
 fn panic(info: &PanicInfo) -> ! { // The Panic Info Contains Information About The Panic.
-    println!("NOT A TEST:{info}");
+    println!("\nError: {}", info);
     hlt_loop();
 }
 
