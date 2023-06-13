@@ -1,4 +1,4 @@
-# interstellar_os
+# Description
 This Is My OS That I Am Making Whilst Learning About Rust x86_64 Systems Programing
 
 My Current Aims Are To Implement A User Mode With A File System, GUI, Some Games, Maybe Port The Rust Compiler And Python, And Try To Implement Some Linux System Calls And Run Some Linux Made Apps
@@ -7,13 +7,13 @@ It Might Not Seem Much From Inside The OS But There Is Allot Of Code To Make It 
 Currently It Has A PS/2 Keyboard and Mouse Driver As Input But Most VM's Can Translate Your USB Keyboard Into PS/2 Automatically
 Inside The OS You Can See Your Mouse Cursor And Use The Neutron Kernel Shell
 
-## Running The OS
+# Running The OS
 From My Knowledge Running The OS Would Require A Full VGA Setup With PS/2 Mouse And Keyboard And Even Then It Would Reset Every Boot,
 And You Would Need To Keep The USB In The PC If It Would Even Work At All
 
 But Don't Worry We Can Use A Virtual Machine
 
-### QEMU
+## QEMU
 The Easiest Way To Run This Is The QEMU Virtual Machine
 
 QEMU Downloads
@@ -28,13 +28,14 @@ QEMU Downloads
 
 I Recommend You Add It To Your Environment Path Variable Then
 
-Run The .img File Using QEMU With This Command: `qemu-system-x86_64 -drive format=raw,file=interstellar_os.img`
+Run The .img File Using QEMU With This Command
+`qemu-system-x86_64 -drive format=raw,file=interstellar_os.img`
 
 ![qemu1.png](qemu1.jpg)
 
 ![qemu2.png](qemu2.png)
 
-### Virtual Box
+## Virtual Box
 Virtual Box Takes Some More Setup Than QEMU
 
 1. Launch Virtual Box And Make A New Empty Unknown 64 bit Machine
@@ -48,7 +49,7 @@ Virtual Box Takes Some More Setup Than QEMU
 
 ![vbox2.jpg](vbox2.png)
 
-## Manually Building
+# Manually Building
 Manually Building Is Easy Just Clone The Repository, Make Sure Your Using Rust Nightly Compiler With Rustup And Run This Command For The Bootloader To Work:
 `rustup component add llvm-tools-preview`
 
@@ -67,7 +68,7 @@ If You Want To Add More Automatic Commands On Launch Edit The Files In gdb/bin/g
 ![GDB2.png](GDB2.png)
 
 
-## Want To Learn How To Code Your Own OS In Rust
+# Want To Learn How To Code Your Own OS In Rust
 If you're interested in coding your own OS in Rust, check out the following resources:
 [https://os.phil-opp.com/](https://os.phil-opp.com/)
 [https://wiki.osdev.org/Expanded_Main_Page](https://wiki.osdev.org/Expanded_Main_Page)
