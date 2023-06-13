@@ -1,0 +1,56 @@
+[package]
+name = "kernel"
+version = "0.1.0"
+edition = "2021"
+
+# CHANGING DEPENDENCIES VERSIONS WILL CAUSE ERRORS
+[dependencies]
+# And We Need llvm-tools-preview component for Bootloader - rustup component add llvm-tools-preview
+bootloader_api = "0.11.3"
+# Makes It So That Reads And Writes To Memory Wont Be Optimized Away By The Compiler
+volatile = "0.4.6"
+# For Making Statics That Initialize At Run Time And Not Compile Time
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] } # With No Standard lib
+# This Is Used To Make Spinlocks Which Can Be Used To Lock A Resource And Other Programs Will Constantly Run A Loop Requesting Access (But It Will Only Run The Programs Loops Seperatly) 
+# And When The Program Is Free The Thread/Program Trying To Access It Will Be Given Access
+spin = "0.5.2"
+# For Exiting QUEMU By Writing To A Port
+x86_64 = "0.14.2"
+# This Is Used For Sending Data Over The Serial Port
+uart_16550 = "0.2.0"
+# This Is Used For The Interrupt Controller
+pic8259 = "0.10.1"
+# Used For Translating PS2 Keyboard Scan Codes
+pc-keyboard = "0.7.0"
+# Used For Allocation
+linked_list_allocator = "0.10.2"
+# Used For MultiTasking
+
+crossbeam-queue = { version = "0.3.8", default-features = false, features = ["alloc"] }
+crossbeam-utils = { version = "0.8", default-features = false, features = ["nightly"] }
+conquer-once = { version = "0.4.0", default-features = false }
+futures-util = { version = "0.3.27", default-features = false, features = ["alloc"] }
+
+ps2-mouse = "0.1.4"
+spinning_top = "0.2.5"
+
+
+
+[dependencies.noto-sans-mono-bitmap]
+version = "0.2"
+default-features = false
+features = [
+    "regular",
+    "size_16",
+    "unicode-basic-latin",
+    # required for the fallback char '�'
+    "unicode-specials",
+]
+
+[[test]]
+name = "should_panic" # For This Test 
+harness = false # Disable Panic Handler
+
+[[test]]
+name = "stack_overflow"
+harness = false
