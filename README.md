@@ -1,26 +1,29 @@
 # Description
-This Is My OS That I Am Making Whilst Learning About Rust x86_64 Systems Programing
+
+This is my OS that I am making while learning about Rust x86_64 systems programming.
 
 ### Aims
-My Current Aims Are To Implement A User Mode With A File System, GUI, Some Games, Maybe Port The Rust Compiler And Python, And Try To Implement Some Linux System Calls And Run Some Linux Made Apps
 
-### What Can It Do?
-It Might Not Seem Much From Inside The OS But There Is Allot Of Code To Make It Work
+My current aims are to implement a user mode with a file system, GUI, some games, maybe port the Rust compiler and Python, and try to implement some Linux system calls and run some Linux-made apps.
 
-Currently It Has A PS/2 Keyboard and Mouse Driver As Input But Most VM's Can Translate Your USB Keyboard Into PS/2 Automatically
+### What can it do?
 
-Inside The OS You Can See Your Mouse Cursor And Use The Neutron Kernel Shell
+It might not seem like much from inside the OS, but there is a lot of code to make it work.
 
-# Running The OS
-From My Knowledge Running The OS Would Require A Full VGA Setup With PS/2 Mouse And Keyboard And Even Then It Would Reset Every Boot,
-And You Would Need To Keep The USB In The PC If It Would Even Work At All
+Currently, it has a PS/2 keyboard and mouse driver as input, but most VMs can translate your USB keyboard into PS/2 automatically.
 
-But Don't Worry We Can Use A Virtual Machine
+Inside the OS, you can see your mouse cursor and use the Neutron Kernel Shell.
+
+# Running the OS
+
+From my knowledge, running the OS would require a full VGA setup with PS/2 mouse and keyboard, and even then it would reset every boot. Additionally, you would need to keep the USB in the PC if it would even work at all. However, don't worry, we can use a virtual machine.
+
 
 ## QEMU
-The Easiest Way To Run This Is The QEMU Virtual Machine
 
-QEMU Downloads
+The easiest way to run this is the QEMU virtual machine.
+
+QEMU Downloads:
 
 [Windows-64 Bit](https://qemu.weilnetz.de/w64/)
 
@@ -30,9 +33,7 @@ QEMU Downloads
 
 [MacOS](https://www.qemu.org/download/#macos)
 
-I Recommend You Add It To Your Environment Path Variable Then
-
-Run The .img File Using QEMU With This Command
+I recommend you add it to your environment path variable, then run the .img file using QEMU with this command:
 
 `qemu-system-x86_64 -drive format=raw,file=interstellar_os.img`
 
@@ -40,40 +41,43 @@ Run The .img File Using QEMU With This Command
 
 ![qemu2.png](images/qemu2.png)
 
-## Virtual Box
-Virtual Box Takes Some More Setup Than QEMU
+## Virtual box
 
-1. Launch Virtual Box And Make A New Empty Unknown 64 bit Machine
+VirtualBox takes some more setup than QEMU.
+
+1. Launch VirtualBox and make a new empty unknown 64-bit machine.
 ![create_os_vbox.png](images/create_os_vbox.png)
 
-2. Allocate the desired number of CPUs and a reasonable amount of memory for the machine. Then, click on "Use an existing virtual hard disk file," add the .VDI file, and select it.
+2. Allocate the desired number of CPUs and a reasonable amount of memory for the machine. Then click on "Use an existing virtual hard disk file," add the .VDI file, and select it.
 ![create_os_vbox2.png](images/create_os_vbox2.png)
 
-3. Then Run It!
+3. Then run it!
 ![vbox1.jpg](images/vbox1.jpg)
 
 ![vbox2.jpg](images/vbox2.png)
 
-# Manually Building
-Manually Building Is Easy Just Clone The Repository, Make Sure Your Using Rust Nightly Compiler With Rustup And Run This Command For The Bootloader To Work:
+# Manually building
+
+Manually building is easy. Just clone the repository, make sure you're using Rust Nightly Compiler with Rustup, and run this command for the bootloader to work:
+
 `rustup component add llvm-tools-preview`
 
-Make Sure You Have QEMU Installed And Added To Your Environment Path Variable
-Then From The Root Folder Run:
+Make sure you have QEMU installed and added to your environment path variable. Then, from the root folder, run:
+
 `cargo build && cargo run`
 
-I Have Also Added An Upgraded Version Of GNU Debbuger For Windows From Here [https://github.com/ssbssa/gdb](https://github.com/ssbssa/gdb) Credit To ssbssa
-And Can Be Ran Automatically When In Debug Build Mode By Changing The GDB Variable To true In Main.rs
+I have also added an upgraded version of GNU Debugger for Windows from here:  [https://github.com/ssbssa/gdb](https://github.com/ssbssa/gdb) (Credit to ssbssa). It can be run automatically when in debug build mode by changing the GDB variable to `true` in `main.rs`.
 
-For Linux Gnome-terminal users Add Your GDB.exe Into The gdb-linux Bin Folder, Adding It As A Path Variable May Also Work
+For Linux Gnome-terminal users, add your GDB.exe into the gdb-linux bin folder. Adding it as a path variable may also work.
 
-If You Want To Add More Automatic Commands On Launch Edit The Files In gdb/bin/gdbinit
+If you want to add more automatic commands on launch, edit the files in `gdb/bin/gdbinit.`
 
 ![GDB1.png](images/GDB1.png)
 ![GDB2.png](images/GDB2.png)
 
 
-# Want To Learn How To Code Your Own OS In Rust
+# Want to learn how to code your own OS in rust?
+
 If you're interested in coding your own OS in Rust, check out the following resources:
 [https://os.phil-opp.com/](https://os.phil-opp.com/)
 [https://wiki.osdev.org/Expanded_Main_Page](https://wiki.osdev.org/Expanded_Main_Page)
