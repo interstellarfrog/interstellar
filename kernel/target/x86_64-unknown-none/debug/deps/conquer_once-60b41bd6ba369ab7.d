@@ -1,0 +1,10 @@
+C:\Users\zmurp\OneDrive\Documents\Code\Rust\interstellar_os\interstellar_os\kernel\target\x86_64-unknown-none\debug\deps\conquer_once-60b41bd6ba369ab7.rmeta: C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\lib.rs C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\noblock.rs C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\spin.rs C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\cell.rs C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\lazy.rs C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\state.rs
+
+C:\Users\zmurp\OneDrive\Documents\Code\Rust\interstellar_os\interstellar_os\kernel\target\x86_64-unknown-none\debug\deps\conquer_once-60b41bd6ba369ab7.d: C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\lib.rs C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\noblock.rs C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\spin.rs C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\cell.rs C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\lazy.rs C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\state.rs
+
+C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\lib.rs:
+C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\noblock.rs:
+C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\spin.rs:
+C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\cell.rs:
+C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\lazy.rs:
+C:\Users\zmurp\.cargo\registry\src\index.crates.io-6f17d22bba15001f\conquer-once-0.4.0\src\state.rs:
