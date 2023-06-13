@@ -1,0 +1,11 @@
+Changed From VGA Text Mode To New Bootloader Version With Framebuffer
+
+Updated Old VGA Code To Framebuffer Code
+
+Added Drawing Functions To Framebuffer Code
+
+Added PS/2 Mouse 
+
+Restructered Files And Optimized Code
+
+Updated ReadMe

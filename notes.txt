@@ -1,0 +1,541 @@
+These Are My Notes Some May Be Outdated As We Are Using Newer Dependencies Now
+
+
+
+Sentences in Quotes Are Copied From https://os.phil-opp.com/
+Other Sentences Are Written In My Own Words
+
+////////////////////////////////////////////////////////////////////////////////////
+## Target Json file
+////////////////////////////////////////////////////////////////////////////////////
+This Is Used To Make A Custom Target For Building The OS As We Want To Run For Bare Metal
+My Build
+host: x86_64-pc-windows-msvc
+release: 1.71.0-nightly
+
+Target Build
+To Avoid Linker Errors We Want To Cross Compile Our Code Using Our Custom Target.
+
+
+# Instead Of Using The OS Default Linker We Use The Cross Platform LLD Linker That Comes With Rust
+"linker-flavor": "ld.lld",
+"linker": "rust-lld",
+
+# Since We Cannot Unwind The Stack We Abort Instead
+"panic-strategy": "abort",
+
+# The Redzone Is An Area Below A Function (128 bytes) That Is Used For Temp Data But In Our Case That Will Overwrite Important Data That We Need
+# For Example Interrupts Or Exceptions When They Happen The Data Inside Of The Redzone Will Be OverWritten And Will Cause The Function To Break - Stack Corruption
+"disable-redzone": true,
+
+# mmx And sse Is For SIMD Instructions Which Can Make Programs Faster But Using The SIMD Registers In Our Kernel Will Cause It To Slow Down
+# As The Kernel Needs To Restore The Registers To Their Original State Before Continuing A Program After An Interrupt
+# This Means That The Kernel Has To Save The Whole SIMD State To The Main Memory On Each System Call Or Hardware Interrupt
+# But Since We Are Removing Support For The SSE Registers This Causes A Problem As The Rust Core Lib Uses These For Floats So We Add soft-float To Tell LLVM To Fix This
+# Which Does Cause A Slight Slow Down But Should Be Faster Overall
+"features": "-mmx,-sse,+soft-float",
+
+////////////////////////////////////////////////////////////////////////////////////
+## VGA Text Mode
+////////////////////////////////////////////////////////////////////////////////////
+Buffer Address Is Located at 0xb8000 for Color - Memory Mapped I/O
+0xb0000 for monochrome
+This Is The Easiest Way Of Printing To The Screen As All We Have To Do Is Write To A Memory Location Which In Turn Actually Writes 
+
+
+////////////////////////////////////////////////////////////////////////////////////
+## Volatile
+////////////////////////////////////////////////////////////////////////////////////
+In Future Rust Updates The Compiler Might Optimize The Code Even More So Our Writes To The VGA Buffer Might Be Removed By The Compiler
+If It Does Not Think That It Is Needed - It Just Sees That We Are Writing To A Memory Location
+
+"The volatile keyword indicates that a value may change between different accesses, even if it does not appear to be modified."
+"This keyword prevents an optimizing compiler from optimizing away subsequent reads or writes and thus incorrectly reusing a stale value or omitting writes."
+
+
+////////////////////////////////////////////////////////////////////////////////////
+## Lazy Static
+////////////////////////////////////////////////////////////////////////////////////
+"To provide a global writer that can be used as an interface from other modules without carrying a Writer instance around, we try to create a static WRITER"
+But This Fails Because Rusts Constant evaluator Can't Convert Raw Pointers Into References At Compile Time
+So Instead We Use The Lazy Static Crate
+"Instead of computing its value at compile time, the static lazily initializes itself when accessed for the first time. Thus, the initialization happens at runtime, so arbitrarily complex initialization code is possible."
+
+
+////////////////////////////////////////////////////////////////////////////////////
+## SpinLock
+////////////////////////////////////////////////////////////////////////////////////
+Used To Manage Access Between Shared Resources
+Can Be Used To Lock A Resource And Other Programs Will Constantly Run A Loop Requesting Access (But It Will Only Run The Programs Loops Seperatly) 
+And When The Program Is Free The Thread/Program Trying To Access It Will Be Given Access
+
+////////////////////////////////////////////////////////////////////////////////////
+## Testing 
+////////////////////////////////////////////////////////////////////////////////////
+When Running Custom Tests We Add #![reexport_test_harness_main = "test_main"] Because We Are Using No Main Which Also Means No Main For Tests So We Change The Name Then 
+
+Any Tests In Test Folder Will Be Recognized Automatically
+
+We Also Add This Which When Testing Append Args To QUEMU
+[package.metadata.bootimage] 
+test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04"]
+
+
+Port 0xf4, 4 bytes
+Then We Write A Number To This Port (0 or 1) 1 = "(1 << 1) | 1 = 3" 0 = "(0 << 1) | 1 = 1"
+Which Will Either Exit With Success Or Error
+We Use The x86_64 Crate To Do This
+
+////////////////////////////////////////////////////////////////////////////////////
+## CPU Exceptions
+////////////////////////////////////////////////////////////////////////////////////
+Exceptions Occur In A Bunch Of Different Ways - 0 Division, Accessing Invalid Memory Address ect.
+An Exception Signal Means That Something Isn't Working In Given Instruction
+There Are 32 CPU Exception Types  0 - 31
+Most Common - Divide by zero, Invalid opcode, General protection fault, Page fault, Floating point exception
+
+
+
+Exception Number	Exception Name	Description
+0	                Divide by zero| The CPU tried to divide a number by zero.
+1	                Debug exception|	The CPU received a debug event.
+2	                NMI interrupt| The CPU received a non-maskable interrupt.
+3	                Breakpoint exception| The CPU encountered a breakpoint instruction.
+4	                Overflow exception| The CPU encountered an overflow error.
+5	                Bounds check exception| The CPU tried to access an invalid memory location.
+6	                Invalid opcode exception| The CPU tried to execute an invalid opcode.
+7	                Coprocessor not available exception|	The CPU did not find a coprocessor.
+8	                Double fault exception| The CPU encountered a second fault while handling a fault.
+9	                Invalid TSS exception| The CPU tried to access an invalid task state segment.
+10	                Segment not present exception| The CPU tried to access a segment that was not present.
+11	                Stack fault exception| The CPU tried to access an invalid stack location.
+12	                General protection fault exception| The CPU tried to access a memory location that it did not have permission to access.
+13	                Page fault exception| The CPU tried to access a memory page that was not currently loaded into memory.
+14	                Reserved	
+15	                Floating point exception| The CPU encountered an error during the calculation of a floating point value.
+16	                Alignment check exception| The CPU tried to access a memory location that was not aligned correctly.
+17	                Machine check exception|	The CPU detected a hardware error.
+18	                SIMD floating point exception| The CPU encountered an error during the calculation of a SIMD floating point value.
+19	                Virtual interrupt error|	The CPU received a virtual interrupt that it did not expect.
+20	                Input/output bound range exception| The CPU tried to access an input/output device that it did not have permission to access.
+21	                Security exception| The CPU tried to access a memory location that was protected by the security system.
+22-31	            Reserved	
+
+#To Fix This Problem We Have To Set Up A Interrupt Descriptor Table
+
+["
+When an exception occurs, the CPU roughly does the following:
+
+Push some registers on the stack, includihe instruction ng tpointer and the RFLAGS register. (We will use these values later in this post.)
+Read the corresponding entry from the Interrupt Descriptor Table (IDT). For example, the CPU reads the 14th entry when a page fault occurs.
+Check if the entry is present and, if not, raise a double fault.
+Disable hardware interrupts if the entry is an interrupt gate (bit 40 not set).
+Load the specified GDT selector into the CS (code segment).
+Jump to the specified handler function.
+"]
+////////////////////////////////////////////////////////////////////////////////////
+## Double Faults - number 8
+////////////////////////////////////////////////////////////////////////////////////
+Double Faults Happen When The Cpu Fails To Call The First Exception Handler
+Double Faults Are Like Catch All {} - sometimes
+
+////////////////////////////////////////////////////////////////////////////////////
+## Interrupt Stack Table
+////////////////////////////////////////////////////////////////////////////////////
+The IST Is A Table Of Pointers - 7 To Stacks That We Know Are Good Stacks 
+
+////////////////////////////////////////////////////////////////////////////////////
+## Task State Segment -- Legacy Structure
+////////////////////////////////////////////////////////////////////////////////////
+Was Used To Hold Information About A Task In 32 Bit Mode And For Hardware Context Switching
+But This Is No Longer Supported In 64 Bit Mode
+
+New TSS =
+Reserved u32
+Privilege Stack Table [u64; 3] -- Ignore This Until We Have User Mode Programs
+Reserved u64
+IST [u64; 7]  -- 7 Pointers To Clean Stacks
+Reserved u64
+Reserved u16
+I/O Map Base Address
+
+////////////////////////////////////////////////////////////////////////////////////
+## Global Descriptor Table
+////////////////////////////////////////////////////////////////////////////////////
+This Was Used Before Paging For Memory Management
+"However, it is still needed in 64-bit mode for various things, such as kernel/user mode configuration or TSS loading."
+
+////////////////////////////////////////////////////////////////////////////////////
+## Hardware Interrupts
+////////////////////////////////////////////////////////////////////////////////////
+
+Hardware Interrupts Are A Type Of Exception That We Can Handle 
+They Are Used For Keyboards And Other Devices
+
+They Are Controlled By 2 Interrupt Controllers
+1:
+0x20 = Command Port
+0x21 = Data Port
+2:
+0xa0 = Command Port
+0xa1 = Data Port
+
+We Cannot Use The Default Config Because It Sends Interrupts 0-15
+Which We Have Mapped As Exceptions
+So We Remap It To 32-47
+
+PS2 Controller Data Port = 0x60
+
+We Read This Port To Get The Scan Codes From The Keyboard And Turn It Into An Ascii Character
+That We Can Print To The Screen
+
+////////////////////////////////////////////////////////////////////////////////////
+## Segmentation -- Legacy Memory Management
+////////////////////////////////////////////////////////////////////////////////////
+Segmentation - When The CPU Is In Protected Mode We Can Isolate Processes Using Segmentation
+
+To Set Up Segmentation There Are Registers Used For This
+
+Virtual Memory - Virtual Memory Is Used As An Abstraction On Top Of The Real Memory
+
+Say If 2 Of The Same Programs Have 150 Memory Each 
+
+programs Virt Mem:
+---------------
+0
+Program 1
+150
+---------------
+0
+Program 2
+150
+---------------
+Real Mem:
+0
+|
+100
+Program 1
+250
+|
+300
+Program 2
+450
+
+Fragmentation
+
+Say If The Programs Are In Real Memory And They Free Some Memory
+
+0
+Free Mem
+100
+Program 1
+250
+Free Mem
+300
+Program 2
+450
+Free Mem
+550
+
+And We Want To Start A Third Program
+But We Cannot Because There Is No Space So Instead We Will Pause Execution And Move All The Memory Together
+
+0
+Program 1
+150
+Program 2
+300
+Program 2
+450
+
+Then We Update The Virtual Memory Translations And Resume Execution
+
+
+
+But This Is Slow And Can Cause Programs To Randomly Freeze
+
+This Is Where Paging Comes In
+
+
+////////////////////////////////////////////////////////////////////////////////////
+## Paging
+////////////////////////////////////////////////////////////////////////////////////
+
+Paging Divides The Virtual And Physical Memory Into Fixed Size Small Blocks
+
+So Then Instead Of Putting Programs Parralel Into Memory We Can Put The Different Pages Of The Programs Into Memory At Any Of The Memory Frames
+And For The Program It Just Looks Like It Is Writting To 0 - 150 In Memory For Example But It Could Be Anywhere
+This Solves The Externel Fragmentation Issue
+
+But There Is Now Internal Fragmentation Because Say If We Have A Page Size Of 50 Bytes
+And We Have An App That Takes Up 51 Bytes The App Will Still Use 2 Pages 
+But In Using Paging We Save Allot More Memory
+
+To Implement Paging We Need To Add A Pointer To The Page Table In Memory To The CR3 Register
+
+On Each Memory Access The CPU Reads The Pointer To The Page Table And Looks Up The Frame For The Accessed Page
+Many CPU Architectures Have Caches To Speed This Up That Remember The Last Result
+
+Depending On The Architecture The Page Table Can Also Have Attributes Like Permissions For Read/Write
+
+
+Page Tables - Page Tables Are Used To Map The Virtual Memory Address's Into Real One's
+
+The Hardware That Handles The Translation Is Called The MMU (Memory Management Unit)
+
+Each Page Holds A Flag Saying If It Is In Real Memory Or Not
+
+If It Is In Memory The Page Table Contains The Real Memory Address Where At Which The Page Is Stored
+
+If It Is Not In Memory ( In Disk ) A Page Fault Exception Is Invoked
+
+
+Say If A Program Has 4 Pages 0-50, 1_000_000-1_000_050, 1_000_050-1_000_100 , 1_000_100-1_000_150
+Even Though There Is Only 4 Physical Frames For The 4 Pages There Is Over 1 Million Entries On The Single Page Table
+Which Causes A Massive Slow Down Because The CPU Has To Go All The Way Down The Page Table
+To Fix This We Use A Level 2 Page Table
+
+Which Say Maps Every 10_000 Bytes To A level 1 Page Table
+
+And Then We Add A Level 3 And So On
+
+On x86_64 There Are 4 Page Table Levels - On Some New Intel CPU'S (Ice Lake) There Is Space For 5 Which Allow You To Address 128 PB Of Virt Mem Instead Of 256 TB 
+As There Are Actually Only 48 Bits In The Normal 64 Bit CPU's Virtual Address Space
+
+Each Page Has A Size Of 4 KiB Each
+
+Each Page Table Has 512 Entries
+
+And Each Entry Is 8 Bytes
+
+512 * 8 = 4 KiB Which Is The Same Size As A Page
+
+The Level 4 Page Is Called The Page Map level 4 Table (PML4)
+Which Contains Pointers To A Bunch Of Level 3 Page Tables Called Page Directory Pointer Tables (PDP)
+Which Contain Pointers To The Level 2 Page Tables Called The Page Directory Tables (PD)
+Which Contain Pointers To The Level 1 Page Tables Called The Page Table (PT)
+Which Contains Mappings Of Fake Virtual Address's To Real Memory Address's
+
+
+Each Process Has There Own Page Tables 
+
+The OS Can Switch The Pointers To The Level 4 Page Tables In The CR3 Register To Another Processes Page Table
+
+We Will Need To Implement A Schedular To Do This Later
+
+
+Page Tables Are An Array Of 512 Entries Or In Rust:
+"
+#[repr(align(4096))] // Align On A 4 KiB Boundary So It Allways Fils A Complete Page
+pub struct PageTable {
+    entries: [PageTableEntry; 512],
+}
+"
+
+Each Entry Has 8 Bytes
+
+"
+0	present	the page is currently in memory // Because You Can Write Pages Into The Disk
+1	writable	it’s allowed to write to this page
+2	user accessible	if not set, only kernel mode code can access this page
+3	write-through caching	writes go directly to memory
+4	disable cache	no cache is used for this page
+5	accessed	the CPU sets this bit when this page is used
+6	dirty	the CPU sets this bit when a write to this page occurs
+7	huge page/null	must be 0 in P1 and P4, creates a 1 GiB page in P3, creates a 2 MiB page in P2
+8	global	page isn’t flushed from caches on address space switch (PGE bit of CR4 register must be set)
+9-11	available	can be used freely by the OS
+12-51	physical address	the page aligned 52bit physical address of the frame or the next page table
+52-62	available	can be used freely by the OS
+63	no execute	forbid executing code on this page (the NXE bit in the EFER register must be set)
+"
+
+
+"
+The Translation Lookaside Buffer
+A 4-level page table makes the translation of virtual addresses expensive because each translation requires four memory accesses.
+To improve performance, the x86_64 architecture caches the last few translations in the so-called translation lookaside buffer (TLB). 
+This allows skipping the translation when it is still cached.
+
+Unlike the other CPU caches, the TLB is not fully transparent and does not update or remove translations when the contents of page tables change. 
+This means that the kernel must manually update the TLB whenever it modifies a page table. 
+To do this, there is a special CPU instruction called 
+invlpg (“invalidate page”) that removes the translation for the specified page from the TLB, 
+so that it is loaded again from the page table on the next access. 
+The TLB can also be flushed completely by reloading the CR3 register, which simulates an address space switch. 
+The x86_64 crate provides Rust functions for both variants in the tlb module.
+
+It is important to remember to flush the TLB on each page table modification because otherwise, 
+the CPU might keep using the old translation, 
+which can lead to non-deterministic bugs that are very hard to debug.
+"
+
+Or In Other Words We Need To "flush the TLB on each page table modification because otherwise, 
+the CPU might keep using the old translation"
+
+
+The Bootloader Crate Has Already Added Paging For Us 
+But For The Kernel To Access Real Address's We Need To Map The Physical Memory
+To Some Unused Virtual Address Range 
+
+
+////////////////////////////////////////////////////////////////////////////////////
+## System Calls - From Chat GPT
+////////////////////////////////////////////////////////////////////////////////////
+The exact implementation details for setting up a system call interface can vary depending on your operating system and programming language. However, I can give you a general idea of how to do this in Rust.
+
+Here's a high-level overview of the steps involved:
+
+1. Define the interface for your system call: This involves defining the function signature for your kernel function that will be callable from user-space. You should specify the input parameters and the expected return value.
+
+For example, let's say you want to create a system call that allows user-space code to get the current system time. You could define a function signature like this:
+
+```rust
+pub fn get_system_time() -> u64 {
+    // implementation goes here
+}
+```
+
+2. Allocate a system call number: In order to create a system call, you need to allocate a unique number that identifies it. This number will be used by user-space code to request the system call.
+
+3. Implement the system call handler function: This is the function that will actually execute the kernel code for your system call. It should accept the input parameters from user-space, perform any necessary processing, and return the output value (if any).
+
+For example, here's a simple implementation of the `get_system_time` function that returns the current system time as a 64-bit integer:
+
+```rust
+pub fn get_system_time() -> u64 {
+    // Get the current time from the system clock
+    let now = std::time::SystemTime::now();
+    
+    // Convert the time to a 64-bit integer and return it
+    now.duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+```
+
+4. Update the system call table: This involves adding an entry to the kernel's system call table that maps your system call number to the corresponding handler function.
+
+In Rust, you can define a system call table as a static array of function pointers. For example:
+
+```rust
+static SYSCALL_TABLE: [Option<unsafe extern "C" fn() -> u64>; 1] = [
+    Some(get_system_time),
+];
+```
+
+In this example, we're defining a system call table with a single entry that maps system call number 0 to the `get_system_time` function.
+
+5. Provide a user-space library function: Finally, you need to provide a library function that user-space code can call to trigger your system call. This library function should use inline assembly to execute the software interrupt instruction and pass the appropriate system call number and arguments to the kernel.
+
+Here's an example of a library function that calls the `get_system_time` system call:
+
+```rust
+pub fn get_system_time() -> u64 {
+    let result: u64;
+    
+    unsafe {
+        // Execute the software interrupt instruction to trigger the system call
+        asm!(
+            "int 0x80",
+            inout("rax") 0,
+            lateout("rdx") result,
+            options(nostack),
+        );
+    }
+    
+    result
+}
+```
+
+In this example, we're using inline assembly to execute the `int 0x80` instruction, which is the software interrupt instruction on x86 architectures. We're passing the system call number (0) in the `rax` register and expecting the return value to be passed back in the `rdx` register.
+
+That's a general overview of how to create a system call interface in Rust. Keep in mind that the exact details can vary depending on your specific use case and operating system. Additionally, system calls can be a powerful but potentially dangerous feature, so you should take care to ensure that your system call interface is secure and well-audited.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# System Call Table More Info - From Chat-GPT
+
+To make the system call table work, we need to perform the following steps:
+
+1. Define the system call function: We need to define the function that will be called when a system call is made. This function should take a pointer to the system call parameters as its input, and it should return the result of the system call.
+
+2. Assign an index to the system call: Each system call should have a unique index, which will be used to identify the system call when it is invoked.
+
+3. Update the system call table: We need to update the system call table with the index and the function pointer for each system call. This is typically done during the kernel initialization process.
+
+4. Implement the system call dispatcher: When a system call is invoked, the system call dispatcher is called. This function reads the system call index from the appropriate CPU register, looks up the corresponding function pointer in the system call table, and calls the function with the system call parameters.
+
+Here is some sample code in Rust that demonstrates how to update the system call table and implement a simple system call function:
+
+```rust
+// Define the system call function
+fn my_syscall(params: *mut u64) -> u64 {
+    // Implement the system call logic here
+    return 0; // Return the result of the system call
+}
+
+// Assign an index to the system call
+const MY_SYSCALL_INDEX: u64 = 42;
+
+// Update the system call table
+static mut SYSTEM_CALL_TABLE: [Option<unsafe fn(*mut u64) -> u64>; 256] = [None; 256];
+unsafe {
+    SYSTEM_CALL_TABLE[MY_SYSCALL_INDEX as usize] = Some(my_syscall);
+}
+
+// Implement the system call dispatcher
+#[naked]
+pub unsafe extern "C" fn syscall_dispatcher() {
+    // Read the system call index from the appropriate CPU register
+    let syscall_index: u64;
+    asm!("mov %r10, $0" : "=r" (syscall_index));
+
+    // Look up the corresponding function pointer in the system call table
+    let syscall_fn: unsafe fn(*mut u64) -> u64;
+    syscall_fn = SYSTEM_CALL_TABLE[syscall_index as usize].unwrap();
+
+    // Call the function with the system call parameters
+    let params: *mut u64;
+    asm!("mov %r11, $0" : "=r" (params));
+    let result = syscall_fn(params);
+
+    // Return the result of the system call
+    asm!("mov $0, %rax" : "=r" (result));
+    asm!("ret");
+}
+```
+
+Note that this code is just an example, and it may not work exactly as is in your particular OS. You will need to customize it to fit your specific needs and requirements.
+
+
+
+
+
+
+#////////////////////////////////////
+#//          GDB : GNU Debuger
+#////////////////////////////////////
+
+I believe there is a GBD server built into QUEMU
+
+We activate the server by using the -S and -s commands one sets up the server the other pauses execution
+
+We connect to the GDB server in qemu using localhost:1234
+
+And we pass it the bootloader file and the kernel file so it can recognize where and what it is runnning
+
+From there we can set breakpoints and print variables ect
+
+And set up the tui to display the assembly and src code

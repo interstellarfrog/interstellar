@@ -1,0 +1,9 @@
+make initrd driver
+make file system
+make multiproccesing for user mode
+activate user mode
+Make A GUI
+Make An EXE Executor
+Add UEFI Support With APIC
+Look Into ACPI And APM Power Managment
+Look Into Buddy Allocators And Slab Allocators Or I Can Just Use A Crate
