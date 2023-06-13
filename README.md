@@ -1,10 +1,14 @@
 # Description
 This Is My OS That I Am Making Whilst Learning About Rust x86_64 Systems Programing
 
+### Aims
 My Current Aims Are To Implement A User Mode With A File System, GUI, Some Games, Maybe Port The Rust Compiler And Python, And Try To Implement Some Linux System Calls And Run Some Linux Made Apps
 
+### What Can It Do?
 It Might Not Seem Much From Inside The OS But There Is Allot Of Code To Make It Work
+
 Currently It Has A PS/2 Keyboard and Mouse Driver As Input But Most VM's Can Translate Your USB Keyboard Into PS/2 Automatically
+
 Inside The OS You Can See Your Mouse Cursor And Use The Neutron Kernel Shell
 
 # Running The OS
@@ -29,25 +33,26 @@ QEMU Downloads
 I Recommend You Add It To Your Environment Path Variable Then
 
 Run The .img File Using QEMU With This Command
+
 `qemu-system-x86_64 -drive format=raw,file=interstellar_os.img`
 
-![qemu1.png](qemu1.jpg)
+![qemu1.png](images/qemu1.jpg)
 
-![qemu2.png](qemu2.png)
+![qemu2.png](images/qemu2.png)
 
 ## Virtual Box
 Virtual Box Takes Some More Setup Than QEMU
 
 1. Launch Virtual Box And Make A New Empty Unknown 64 bit Machine
-![create_os_vbox.png](create_os_vbox.png)
+![create_os_vbox.png](images/create_os_vbox.png)
 
 2. Allocate the desired number of CPUs and a reasonable amount of memory for the machine. Then, click on "Use an existing virtual hard disk file," add the .VDI file, and select it.
-![create_os_vbox2.png](create_os_vbox2.png)
+![create_os_vbox2.png](images/create_os_vbox2.png)
 
 3. Then Run It!
-![vbox1.jpg](vbox1.jpg)
+![vbox1.jpg](images/vbox1.jpg)
 
-![vbox2.jpg](vbox2.png)
+![vbox2.jpg](images/vbox2.png)
 
 # Manually Building
 Manually Building Is Easy Just Clone The Repository, Make Sure Your Using Rust Nightly Compiler With Rustup And Run This Command For The Bootloader To Work:
@@ -64,8 +69,8 @@ For Linux Gnome-terminal users Add Your GDB.exe Into The gdb-linux Bin Folder, A
 
 If You Want To Add More Automatic Commands On Launch Edit The Files In gdb/bin/gdbinit
 
-![GDB1.png](GDB1.png)
-![GDB2.png](GDB2.png)
+![GDB1.png](images/GDB1.png)
+![GDB2.png](images/GDB2.png)
 
 
 # Want To Learn How To Code Your Own OS In Rust
