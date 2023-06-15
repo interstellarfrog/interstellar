@@ -30,7 +30,6 @@ crossbeam-queue = { version = "0.3.8", default-features = false, features = ["al
 crossbeam-utils = { version = "0.8", default-features = false, features = ["nightly"] }
 conquer-once = { version = "0.4.0", default-features = false }
 futures-util = { version = "0.3.27", default-features = false, features = ["alloc"] }
-
 ps2-mouse = "0.1.4"
 spinning_top = "0.2.5"
 

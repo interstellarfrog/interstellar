@@ -1,0 +1,3 @@
+[unstable]
+# enable the unstable artifact-dependencies feature
+bindeps = true

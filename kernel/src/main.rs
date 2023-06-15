@@ -14,29 +14,40 @@
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #![no_std] // We Cannot Use The Standard Lib As It has OS Specific Functions.
-#![no_main] // A Function Is Called Before The Main Function Which Sets Up The Environment So We Need To OverWrite This As We Do Not Have The OS We Are Coding One
+#![no_main]
+// A Function Is Called Before The Main Function Which Sets Up The Environment So We Need To OverWrite This As We Do Not Have The OS We Are Coding One
 #![feature(custom_test_frameworks)] // Allows Us To Run Custom Tests
 #![test_runner(kernel::test_runner)] // Defines The Test Runner Function
-#![reexport_test_harness_main = "test_main"] // No Main Makes This Not Run As Behind The Scenes Main Is Called For Testing - So We Change The Name
+#![reexport_test_harness_main = "test_main"]
+// No Main Makes This Not Run As Behind The Scenes Main Is Called For Testing - So We Change The Name
 #![allow(unreachable_code)]
 
 use core::panic::PanicInfo;
 
-use kernel::{serial_println, drivers::screen::framebuffer::{FRAMEBUFFER, Color}, task::{executor::Spawner, console_handler::console_start}};
+use kernel::{
+    drivers::screen::framebuffer::{Color, FRAMEBUFFER},
+    serial_println,
+    task::{console_handler::console_start, executor::Spawner},
+};
 
-use bootloader_api::{ BootInfo, entry_point, config::{BootloaderConfig, Mapping} };
-use kernel::task::executor::Executor;
+use kernel::drivers::fs::initrd::read_initrd;
+use bootloader_api::{
+    config::{BootloaderConfig, Mapping},
+    entry_point, BootInfo,
+};
 use kernel::assembly::hlt_loop;
-
+use kernel::task::executor::Executor;
 
 // Used To Call Real Debug Println If In Debug Mode
 // If Not In Debug Mode It Should Be Optimized Away By The Compiler
 
-use kernel::debug_println; 
-
+use kernel::debug_println;
 
 #[cfg(debug_assertions)]
-use kernel::{real_debug_println, debug::{DEBUG_MODE, set_debug_mode, DEBUG_LOCK}};
+use kernel::{
+    debug::{set_debug_mode, DEBUG_LOCK, DEBUG_MODE},
+    real_debug_println,
+};
 
 use kernel::println;
 
@@ -48,8 +59,7 @@ pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     config
 };
 
-
-entry_point!(kernel_main, config = &BOOTLOADER_CONFIG); 
+entry_point!(kernel_main, config = &BOOTLOADER_CONFIG);
 
 #[no_mangle]
 /// Start Point Of The Operating System
@@ -63,12 +73,13 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
         ramdisk_location = *boot_info.ramdisk_addr.as_ref().unwrap();
         ramdisk_len = boot_info.ramdisk_len;
     }
-
-    
-
     kernel::init(boot_info); // Start Interrupt Descriptor table ect.
     let buffer_info = FRAMEBUFFER.get().as_mut().unwrap().lock().buffer_info();
-    debug_println!("Screen Resolution {}x{}\n", buffer_info.width, buffer_info.height);
+    debug_println!(
+        "Screen Resolution {}x{}\n",
+        buffer_info.width,
+        buffer_info.height
+    );
     debug_println!("Initial Ramdisk Location: {}", ramdisk_location);
     debug_println!("Initial Ramdisk Size: {}", ramdisk_len);
     //FRAMEBUFFER.get().unwrap().lock().draw_rect(500, 500, 200, 200, Color::to_pixel(&Color::Green, buffer_info));
@@ -76,6 +87,13 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     //FRAMEBUFFER.get().unwrap().lock().draw_filled_circle(300, 300, 150, Color::to_pixel(&Color::Red, buffer_info));
     //FRAMEBUFFER.get().unwrap().lock().draw_filled_rect(1, 1, 550, 550, Color::to_pixel(&Color::Blue, buffer_info));
     kernel::drivers::hid::mouse::init();
+
+
+    //if ramdisk_len > 0 {
+    //    let initrd_location = ramdisk_location as *const u8;
+    //    read_initrd(initrd_location, ramdisk_len);
+    //}
+
 
     debug_println!("Creating Task Executor");
 
@@ -87,7 +105,6 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 
     executor.run();
 
-
     #[cfg(test)]
     test_main();
 
@@ -95,11 +112,11 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     hlt_loop(); // Loop Until Next Interrupt - Saves CPU Percentage
 }
 
-
 #[cfg(not(test))] // If Not In Test
-#[panic_handler] 
+#[panic_handler]
 // This function is called on panic.
-fn panic(info: &PanicInfo) -> ! { // The Panic Info Contains Information About The Panic.
+fn panic(info: &PanicInfo) -> ! {
+    // The Panic Info Contains Information About The Panic.
     serial_println!("\nError: {}", info);
     hlt_loop();
 }

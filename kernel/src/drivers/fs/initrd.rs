@@ -12,3 +12,28 @@
 //
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+use crate::{drivers::fs::fat32::Fat32Reader, println};
+
+
+
+pub fn read_initrd(initrd_ptr: *const u8, initrd_size: u64) {
+    let initrd_slice = unsafe { core::slice::from_raw_parts(initrd_ptr, initrd_size as usize) };
+
+    if let Some(fat32_reader) = Fat32Reader::new(initrd_slice) {
+        let file_names = fat32_reader.get_file_names();
+        
+        for file_name in file_names {
+            println!("File: {}", file_name);
+            if let Some(file_data) = fat32_reader.read_file(&file_name) {
+                // Process the file data
+                println!("File Contents: {:?}", file_data);
+            } else {
+                println!("Error reading file: {}", file_name);
+            }
+        }
+    } else {
+        println!("Invalid FAT Initrd")
+    }
+}
+

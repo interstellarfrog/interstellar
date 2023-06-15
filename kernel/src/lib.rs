@@ -46,6 +46,10 @@ pub mod drivers {
     pub mod screen {
         pub mod framebuffer;
     }
+    pub mod fs {
+        pub mod initrd;
+        pub mod fat32;
+    }
 }
 
 pub mod serial;
