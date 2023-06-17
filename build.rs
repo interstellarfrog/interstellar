@@ -23,6 +23,9 @@ fn main() {
     // set by cargo's artifact dependency feature
     let kernel = PathBuf::from(std::env::var_os("CARGO_BIN_FILE_KERNEL_kernel").unwrap());
 
+    // Create initrd
+    let _ = create_initrd();
+
     // create an UEFI disk image (optional)
     let uefi_path = out_dir.join("uefi.img");
     bootloader::UefiBoot::new(&kernel)
@@ -30,8 +33,7 @@ fn main() {
         .create_disk_image(&uefi_path)
         .unwrap();
     
-    // Create initrd
-    let _ = create_initrd();
+    
 
     // create a BIOS disk image
     let bios_path = out_dir.join("bios.img");
