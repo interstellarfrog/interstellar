@@ -9,3 +9,5 @@ Added PS/2 Mouse
 Restructered Files And Optimized Code
 
 Updated ReadMe
+
+Added initrd(Initial Ramdisk) and initrd generator which takes all files in the initrd-files folder and makes them into the initrd file accessible to the OS in memory which I then made a reader for

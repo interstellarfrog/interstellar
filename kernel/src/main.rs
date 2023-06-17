@@ -25,7 +25,7 @@
 use core::panic::PanicInfo;
 
 use kernel::{
-    drivers::screen::framebuffer::FRAMEBUFFER,
+    drivers::{screen::framebuffer::FRAMEBUFFER, fs::initrd::{parse_initrd_file_entries, get_file_contents, get_file_names}},
     serial_println,
     task::{console_handler::console_start, executor::Spawner},
 };
@@ -36,6 +36,7 @@ use bootloader_api::{
 };
 use kernel::assembly::hlt_loop;
 use kernel::task::executor::Executor;
+use kernel::drivers::fs::initrd::parse_initrd_metadata;
 
 // Used To Call Real Debug Println If In Debug Mode
 // If Not In Debug Mode It Should Be Optimized Away By The Compiler
@@ -82,16 +83,29 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     );
     debug_println!("Initial Ramdisk Location: {}", ramdisk_location);
     debug_println!("Initial Ramdisk Size: {}", ramdisk_len);
-    //FRAMEBUFFER.get().unwrap().lock().draw_rect(500, 500, 200, 200, Color::to_pixel(&Color::Green, buffer_info));
-    //FRAMEBUFFER.get().unwrap().lock().draw_line(10, 10, 520, 600, Color::to_pixel(&Color::Blue, buffer_info));
-    //FRAMEBUFFER.get().unwrap().lock().draw_filled_circle(300, 300, 150, Color::to_pixel(&Color::Red, buffer_info));
-    //FRAMEBUFFER.get().unwrap().lock().draw_filled_rect(1, 1, 550, 550, Color::to_pixel(&Color::Blue, buffer_info));
+    if ramdisk_len > 0 {
+    let ramdisk_mem = ramdisk_location as *const u8;
+    let initrd_data = unsafe{core::slice::from_raw_parts(ramdisk_mem, ramdisk_len as usize)};
+    let metadata = parse_initrd_metadata(initrd_data);
+    
+
+    if let Some(metadata) = metadata {
+        debug_println!("Number of files: {}", metadata.num_files);
+        debug_println!("Total files size: {}", metadata.total_files_size);
+    }
+    let file_entries = parse_initrd_file_entries(initrd_data).unwrap();
+    let file_names = get_file_names(&file_entries);
+    debug_println!("File Names: {:?}", file_names);
+    let test1 = get_file_contents(&file_entries, initrd_data, "test.txt").unwrap();
+    let test2 = get_file_contents(&file_entries, initrd_data, "test2.txt").unwrap();
+
+    debug_println!("test1: {}", test1);
+    debug_println!("test2: {}", test2);
+
+    }
+
     kernel::drivers::hid::mouse::init();
 
-    //if ramdisk_len > 0 {
-    //    let initrd_location = ramdisk_location as *const u8;
-    //    read_initrd(initrd_location, ramdisk_len);
-    //}
 
     debug_println!("Creating Task Executor");
 
