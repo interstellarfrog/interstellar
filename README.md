@@ -66,6 +66,10 @@ Make sure you have QEMU installed and added to your environment path variable. T
 
 `cargo build && cargo run`
 
+Note Building and running in release mode will make debug_println not print to the screen and should optimize the code away
+
+`cargo build -r && cargo run -r`
+
 I have also added an upgraded version of GNU Debugger for Windows from here:  [https://github.com/ssbssa/gdb](https://github.com/ssbssa/gdb) (Credit to ssbssa). It can be run automatically when in debug build mode by changing the GDB variable to `true` in `main.rs`.
 
 For Linux Gnome-terminal users, add your GDB.exe into the gdb-linux bin folder. Adding it as a path variable may also work.
