@@ -14,9 +14,9 @@
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use super::align_up;
-use core::mem;
 use super::Locked;
 use alloc::alloc::{GlobalAlloc, Layout};
+use core::mem;
 use core::ptr;
 
 unsafe impl GlobalAlloc for Locked<LinkedListAllocator> {
@@ -63,7 +63,9 @@ pub struct LinkedListAllocator {
 impl LinkedListAllocator {
     /// Creates a new instance of `LinkedListAllocator`.
     pub const fn new() -> Self {
-        Self { head: ListNode::new(0) }
+        Self {
+            head: ListNode::new(0),
+        }
     }
 
     /// Initializes the allocator with the given heap start and size.
@@ -107,7 +109,7 @@ impl LinkedListAllocator {
                 current = current.next.as_mut().unwrap();
             }
         }
-        
+
         // No Suitable Region Found
         None
     }
@@ -127,7 +129,7 @@ impl LinkedListAllocator {
                 return Err(());
             }
         }
-        
+
         Ok(alloc_start)
     }
 
@@ -136,7 +138,10 @@ impl LinkedListAllocator {
     ///
     /// Returns the adjusted size and alignment as a `(size, align)` tuple.
     fn size_align(layout: Layout) -> (usize, usize) {
-        let layout = layout.align_to(mem::align_of::<ListNode>()).expect("Adjusting Alignment Failed").pad_to_align();
+        let layout = layout
+            .align_to(mem::align_of::<ListNode>())
+            .expect("Adjusting Alignment Failed")
+            .pad_to_align();
         let size = layout.size().max(mem::size_of::<ListNode>());
         (size, layout.align())
     }

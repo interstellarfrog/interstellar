@@ -13,11 +13,11 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+pub mod console_handler;
 pub mod executor;
 pub mod keyboard;
 pub mod mouse;
 pub mod simple_executor;
-pub mod console_handler;
 use alloc::boxed::Box;
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::{
@@ -59,7 +59,6 @@ impl Task {
     }
 }
 
-
 /// Async Stream For Executor
 macro_rules! stream_processor_task {
     ($stream_type:ty, $queue_size:literal) => {
@@ -78,12 +77,10 @@ macro_rules! stream_processor_task {
         pub fn write(scancode: $stream_type) {
             if let Ok(queue) = QUEUE.try_get() {
                 if queue.push(scancode).is_err() {
-
                 } else {
                     WAKER.wake();
                 }
             } else {
-
             }
         }
 

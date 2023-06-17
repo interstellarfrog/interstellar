@@ -55,9 +55,9 @@ macro_rules! real_debug_println {
 
 #[macro_export]
 /// Macro for printing debug info
-/// 
+///
 /// The debug info will not be printed if building in release mode
-/// 
+///
 /// And the rust compiler should optimize it away
 macro_rules! debug_println {
     ($($arg:tt)*) => {

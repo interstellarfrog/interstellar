@@ -46,8 +46,7 @@ impl WindowManager {
                 }
                 Event::MouseMove(x, y) => {
                     // Process mouse move event
-                }
-                // Handle other event types
+                } // Handle other event types
             }
         }
     }

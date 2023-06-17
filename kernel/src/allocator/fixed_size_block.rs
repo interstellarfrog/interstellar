@@ -13,9 +13,9 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use alloc::alloc::{Layout, GlobalAlloc};
-use core::{ptr, ptr::NonNull, mem};
 use super::Locked;
+use alloc::alloc::{GlobalAlloc, Layout};
+use core::{mem, ptr, ptr::NonNull};
 
 /// A node in the linked list used by `FixedSizeBlockAllocator`.
 struct ListNode {
@@ -42,22 +42,20 @@ unsafe impl GlobalAlloc for Locked<FixedSizeBlockAllocator> {
     /// This function is unsafe because it performs low-level memory allocation operations.
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let mut allocator = self.lock();
-        
+
         match FixedSizeBlockAllocator::list_index(&layout) {
-            Some(index) => {
-                match allocator.list_heads[index].take() {
-                    Some(node) => {
-                        allocator.list_heads[index] = node.next.take();
-                        node as *mut ListNode as *mut u8
-                    }
-                    None => {
-                        let block_size = BLOCK_SIZES[index];
-                        let block_align = block_size;
-                        let layout = Layout::from_size_align(block_size, block_align).unwrap();
-                        allocator.fallback_alloc(layout)
-                    }
+            Some(index) => match allocator.list_heads[index].take() {
+                Some(node) => {
+                    allocator.list_heads[index] = node.next.take();
+                    node as *mut ListNode as *mut u8
                 }
-            }
+                None => {
+                    let block_size = BLOCK_SIZES[index];
+                    let block_align = block_size;
+                    let layout = Layout::from_size_align(block_size, block_align).unwrap();
+                    allocator.fallback_alloc(layout)
+                }
+            },
             None => allocator.fallback_alloc(layout),
         }
     }
@@ -112,7 +110,8 @@ impl FixedSizeBlockAllocator {
     ///
     /// This function is unsafe because it initializes the allocator with raw memory addresses.
     pub unsafe fn init(&mut self, heap_start: usize, heap_size: usize) {
-        self.fallback_allocator.init(heap_start as *mut u8, heap_size);
+        self.fallback_allocator
+            .init(heap_start as *mut u8, heap_size);
     }
 
     /// Chooses an appropriate block size for the given layout.

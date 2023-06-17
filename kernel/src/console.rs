@@ -13,8 +13,11 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::{
+    drivers::screen::framebuffer::{Color, FRAMEBUFFER},
+    print, println,
+};
 use alloc::vec::Vec;
-use crate::{print, println, drivers::screen::framebuffer::{FRAMEBUFFER, Color}};
 
 /// Handles the console input by executing the corresponding commands.
 ///
@@ -42,25 +45,25 @@ pub fn handle_console(line: &str) {
                 "test" => {
                     println!("\nInitializing Tests");
                     crate::tests::main();
-                },
+                }
                 "cls" => {
                     FRAMEBUFFER.get().unwrap().lock().clear();
-                },
+                }
                 "clear" => {
                     FRAMEBUFFER.get().unwrap().lock().clear();
-                },
+                }
                 "rainbow" => {
                     // WRITER.lock().rainbow_toggle();
-                },
+                }
                 "" => {
                     return;
-                },
+                }
                 "stack overflow" => {
                     stack_overflow();
-                },
+                }
                 _ => {
                     print!("\nERROR: UNKNOWN COMMAND - <{}>", command);
-                },
+                }
             }
         }
     }
@@ -120,7 +123,6 @@ fn subtract_command(args: &[&str]) {
         println!("\nInvalid arguments. Usage: subtract <num1> <num2>");
     }
 }
-
 
 /// Executes the "multiply" command.
 ///
@@ -192,9 +194,6 @@ fn power(base: f64, exponent: f64) -> f64 {
     result
 }
 
-
-
-
 /// Executes the "color" command.
 ///
 /// # Arguments
@@ -202,13 +201,15 @@ fn power(base: f64, exponent: f64) -> f64 {
 /// * `args` - The arguments passed to the command.
 fn change_color(args: &[&str]) {
     if args.is_empty() || args.len() != 1 {
-        println!("\nInvalid Arguments. Example Usage: color <red>   - Tip Use color help or color /?");
-        return;
+        println!(
+            "\nInvalid Arguments. Example Usage: color <red>   - Tip Use color help or color /?"
+        );
     } else {
         let arg = args[0];
 
         if arg == "/?" || arg == "help" {
-            println!("\nExample Usage: color <red>\n\nAvailable Colors:\n
+            println!(
+                "\nExample Usage: color <red>\n\nAvailable Colors:\n
             black,
             blue,
             green,
@@ -224,41 +225,106 @@ fn change_color(args: &[&str]) {
             lightred,
             pink,
             yellow,
-            white");
+            white"
+            );
             return;
         }
         if arg == "black" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Black);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::Black);
         } else if arg == "blue" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Blue);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::Blue);
         } else if arg == "green" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Green);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::Green);
         } else if arg == "cyan" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Cyan);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::Cyan);
         } else if arg == "red" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Red);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::Red);
         } else if arg == "magenta" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Magenta);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::Magenta);
         } else if arg == "brown" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Brown);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::Brown);
         } else if arg == "lightgray" || arg == "lightgrey" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::LightGray);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::LightGray);
         } else if arg == "darkgray" || arg == "darkgrey" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::DarkGray);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::DarkGray);
         } else if arg == "lightblue" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::LightBlue);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::LightBlue);
         } else if arg == "lightgreen" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::LightGreen);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::LightGreen);
         } else if arg == "lightcyan" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::LightCyan);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::LightCyan);
         } else if arg == "lightred" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::LightRed);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::LightRed);
         } else if arg == "pink" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Pink);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::Pink);
         } else if arg == "yellow" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Yellow);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::Yellow);
         } else if arg == "white" {
-            FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::White);
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_text_color(Color::White);
         } else {
             println!("\nInvalid Color: {}  - Tip Use color help or color /?", arg);
         }
@@ -278,7 +344,6 @@ fn echo(s: &[&str]) {
     println!("");
 }
 
-
 /// Executes the "help" command.
 fn help_command() {
     println!("\nAvailable Commands:\n");
@@ -291,7 +356,6 @@ fn help_command() {
     println!("color <color_name>");
     println!("echo <text>");
     println!("test");
-    println!("cls");
     println!("clear");
     println!("rainbow");
     println!("help");

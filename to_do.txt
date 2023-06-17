@@ -1,5 +1,5 @@
-make initrd driver
-make file system
+make initrd generator and reader
+make virtual file system
 make multiproccesing for user mode
 activate user mode
 Make A GUI

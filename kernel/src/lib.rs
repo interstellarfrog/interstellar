@@ -24,20 +24,20 @@
 
 #[cfg(test)]
 use bootloader_api::entry_point;
-use drivers::screen::framebuffer::{FRAMEBUFFER, FrameBufferWriter};
+use drivers::screen::framebuffer::{FrameBufferWriter, FRAMEBUFFER};
 
 #[cfg(test)]
 entry_point!(test_kernel_main);
 
-use core::panic::PanicInfo;
-use x86_64::{instructions::{port::Port}, VirtAddr};
 use assembly::hlt_loop;
 use bootloader_api::BootInfo;
+use core::panic::PanicInfo;
+use x86_64::{instructions::port::Port, VirtAddr};
 
 #[cfg(debug_assertions)]
-use crate::debug::DEBUG_MODE;
-#[cfg(debug_assertions)]
 use crate::debug::DEBUG_LOCK;
+#[cfg(debug_assertions)]
+use crate::debug::DEBUG_MODE;
 
 pub mod drivers {
     pub mod hid {
@@ -48,19 +48,18 @@ pub mod drivers {
     }
     pub mod fs {
         pub mod initrd;
-        pub mod fat32;
     }
 }
 
-pub mod serial;
-pub mod interrupts;
-pub mod syscall;
-pub mod gdt;
-pub mod memory;
 pub mod allocator;
 pub mod assembly;
-pub mod task;
 pub mod console;
+pub mod gdt;
+pub mod interrupts;
+pub mod memory;
+pub mod serial;
+pub mod syscall;
+pub mod task;
 pub mod tests;
 
 pub mod debug;
@@ -96,9 +95,10 @@ pub fn init(boot_info: &'static mut BootInfo) {
     // Initialize other components
     debug_println!("[Kernel Init]\n");
 
-    let phys_mem_offset = VirtAddr::new(*boot_info.physical_memory_offset.as_ref().unwrap());   
-    let mut mapper = unsafe { memory::init(phys_mem_offset)};
-    let mut frame_allocator = unsafe { memory::BootInfoFrameAllocator::init(&boot_info.memory_regions) };
+    let phys_mem_offset = VirtAddr::new(*boot_info.physical_memory_offset.as_ref().unwrap());
+    let mut mapper = unsafe { memory::init(phys_mem_offset) };
+    let mut frame_allocator =
+        unsafe { memory::BootInfoFrameAllocator::init(&boot_info.memory_regions) };
 
     debug_println!("Creating Kernel Heap...");
 
@@ -126,7 +126,7 @@ pub fn init(boot_info: &'static mut BootInfo) {
 
     debug_println!("Enabling Interrupts...");
 
-    x86_64::instructions::interrupts::enable(); // Enable Hardware Interrupts 
+    x86_64::instructions::interrupts::enable(); // Enable Hardware Interrupts
 
     debug_println!("Interrupts Enabled");
 

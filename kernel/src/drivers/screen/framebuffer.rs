@@ -13,12 +13,14 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use core::ptr;
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 use conquer_once::spin::OnceCell;
 use core::fmt;
+use core::ptr;
 use font_constants::BACKUP_CHAR;
-use noto_sans_mono_bitmap::{get_raster, get_raster_width, FontWeight, RasterHeight, RasterizedChar};
+use noto_sans_mono_bitmap::{
+    get_raster, get_raster_width, FontWeight, RasterHeight, RasterizedChar,
+};
 use spinning_top::Spinlock;
 
 pub enum Color {
@@ -64,9 +66,7 @@ impl Color {
                         Color::LightRed => [255, 99, 71, 0],
                         Color::Pink => [255, 192, 203, 0],
                         Color::Yellow => [255, 255, 0, 0],
-                        _ => {
-                            [0, 0, 0, 255]
-                        }
+                        _ => [0, 0, 0, 255],
                     }
                 } else if buffer_info.pixel_format == PixelFormat::Bgr {
                     match color {
@@ -84,11 +84,8 @@ impl Color {
                         Color::LightRed => [71, 99, 255, 0],
                         Color::Pink => [203, 192, 255, 0],
                         Color::Yellow => [0, 255, 255, 0],
-                        _ => {
-                            [0, 0, 0, 255]
-                        }
+                        _ => [0, 0, 0, 255],
                     }
-                
                 } else {
                     // Pixel Format Is Not BGR or RGB So Make Fully invisible
                     [0, 0, 0, 255]
@@ -97,7 +94,6 @@ impl Color {
         }
     }
 }
-
 
 pub static FRAMEBUFFER: OnceCell<Spinlock<FrameBufferWriter>> = OnceCell::uninit();
 
@@ -135,7 +131,7 @@ const LINE_SPACING: usize = 2;
 const LETTER_SPACING: usize = 0;
 
 /// Padding from the border. Prevent that font is too close to border.
-const BORDER_PADDING: usize = 1;
+pub const BORDER_PADDING: usize = 1;
 
 /// Constants for the usage of the [`noto_sans_mono_bitmap`] crate.
 mod font_constants {
@@ -207,65 +203,69 @@ impl FrameBufferWriter {
         self.framebuffer.fill(0);
     }
 
-/// Returns the width of the framebuffer.
-pub fn width(&self) -> usize {
-    self.info.width
-}
-
-/// Returns the height of the framebuffer.
-pub fn height(&self) -> usize {
-    self.info.height
-}
-
-/// Returns the size (width, height) of the framebuffer.
-pub fn size(&self) -> (usize, usize) {
-    (self.info.width, self.info.height)
-}
-
-/// Returns the information about the framebuffer.
-pub fn buffer_info(&mut self) -> FrameBufferInfo {
-    self.info
-}
-
-/// Writes a single char to the framebuffer. Takes care of special control characters, such as
-/// newlines and carriage returns.
-pub fn write_char(&mut self, c: char, color: &mut [u8; 4]) {
-    match c {
-        '\n' => self.newline(),
-        '\r' => self.carriage_return(),
-        c => {
-            let new_xpos = self.x_pos + font_constants::CHAR_RASTER_WIDTH;
-            if new_xpos >= self.width() {
-                self.newline();
-            }
-            let new_ypos =
-                self.y_pos + font_constants::CHAR_RASTER_HEIGHT.val() + BORDER_PADDING;
-            if new_ypos >= self.height() {
-                self.clear();
-            }
-            self.write_rendered_char(get_char_raster(c), color);
-        }
+    /// Returns the width of the framebuffer.
+    pub fn width(&self) -> usize {
+        self.info.width
     }
-}
 
-/// Prints a rendered char into the framebuffer.
-/// Updates `self.x_pos`.
-fn write_rendered_char(&mut self, rendered_char: RasterizedChar, color: &mut [u8; 4]) {
-    for (y, row) in rendered_char.raster().iter().enumerate() {
-        for (x, byte) in row.iter().enumerate() {
-            let intensity = *byte as f32 / 255.0;
-            let pixel_color = [
-                (color[0] as f32 * intensity) as u8,
-                (color[1] as f32 * intensity) as u8,
-                (color[2] as f32 * intensity) as u8,
-                color[3],
-            ];
-            self.write_pixel(self.x_pos + x, self.y_pos + y, pixel_color);
+    /// Returns the height of the framebuffer.
+    pub fn height(&self) -> usize {
+        self.info.height
+    }
+
+    /// Returns the size (width, height) of the framebuffer.
+    pub fn size(&self) -> (usize, usize) {
+        (self.info.width, self.info.height)
+    }
+
+    /// Returns the information about the framebuffer.
+    pub fn buffer_info(&mut self) -> FrameBufferInfo {
+        self.info
+    }
+
+    pub fn text_line(&self) -> usize {
+        self.y_pos
+    }
+
+    /// Writes a single char to the framebuffer. Takes care of special control characters, such as
+    /// newlines and carriage returns.
+    pub fn write_char(&mut self, c: char, color: &mut [u8; 4]) {
+        match c {
+            '\n' => self.newline(),
+            '\r' => self.carriage_return(),
+            c => {
+                let new_xpos = self.x_pos + font_constants::CHAR_RASTER_WIDTH;
+                if new_xpos >= self.width() {
+                    self.newline();
+                }
+                let new_ypos =
+                    self.y_pos + font_constants::CHAR_RASTER_HEIGHT.val() + BORDER_PADDING;
+                if new_ypos >= self.height() {
+                    self.clear();
+                }
+                self.write_rendered_char(get_char_raster(c), color);
+            }
         }
     }
 
-    self.x_pos += rendered_char.width() + LETTER_SPACING;
-}
+    /// Prints a rendered char into the framebuffer.
+    /// Updates `self.x_pos`.
+    fn write_rendered_char(&mut self, rendered_char: RasterizedChar, color: &mut [u8; 4]) {
+        for (y, row) in rendered_char.raster().iter().enumerate() {
+            for (x, byte) in row.iter().enumerate() {
+                let intensity = *byte as f32 / 255.0;
+                let pixel_color = [
+                    (color[0] as f32 * intensity) as u8,
+                    (color[1] as f32 * intensity) as u8,
+                    (color[2] as f32 * intensity) as u8,
+                    color[3],
+                ];
+                self.write_pixel(self.x_pos + x, self.y_pos + y, pixel_color);
+            }
+        }
+
+        self.x_pos += rendered_char.width() + LETTER_SPACING;
+    }
 
     /// Deletes the last character written to the framebuffer.
     pub fn delete_char(&mut self) {
@@ -295,179 +295,220 @@ fn write_rendered_char(&mut self, rendered_char: RasterizedChar, color: &mut [u8
         );
     }
 
+    pub fn write_pixel(&mut self, x: usize, y: usize, color: [u8; 4]) {
+        // If Not In Screen Return
+        if y >= self.height() || x >= self.width() {
+            return;
+        }
 
-
-
-pub fn write_pixel(&mut self, x: usize, y: usize, color: [u8; 4]) {
-    // If Not In Screen Return
-    if y >= self.height() || x >= self.width() {
-        return;
+        // row * row size + column
+        let pixel_offset = y * self.info.stride + x;
+        let bytes_per_pixel = self.info.bytes_per_pixel;
+        let byte_offset = pixel_offset * bytes_per_pixel;
+        // Write Pixel To Framebuffer
+        self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
+            .copy_from_slice(&color[..bytes_per_pixel]);
+        // Read The Pixel For Some Reason
+        let _ = unsafe { ptr::read_volatile(&self.framebuffer[byte_offset]) };
     }
 
-    // row * row size + column
-    let pixel_offset = y * self.info.stride + x;
-    let bytes_per_pixel = self.info.bytes_per_pixel;
-    let byte_offset = pixel_offset * bytes_per_pixel;
-    // Write Pixel To Framebuffer
-    self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
-        .copy_from_slice(&color[..bytes_per_pixel]);
-    // Read The Pixel For Some Reason
-    let _ = unsafe { ptr::read_volatile(&self.framebuffer[byte_offset]) };
-}
+    /// Reads the color of a pixel at the specified coordinates.
+    pub fn read_pixel_color(&self, x: usize, y: usize) -> [u8; 4] {
+        if y >= self.height() || x >= self.width() {
+            // Pixel coordinates are out of bounds
+            return [255, 255, 255, 0];
+        }
 
-/// Reads the color of a pixel at the specified coordinates.
-pub fn read_pixel_color(&self, x: usize, y: usize) -> [u8; 4] {
-    if y >= self.height() || x >= self.width() {
-        // Pixel coordinates are out of bounds
-        return [255, 255, 255, 0];
-    }
-    
-    let bytes_per_pixel = self.info.bytes_per_pixel;
-    let pixel_offset = y * self.info.stride + x;
-    let byte_offset = pixel_offset * bytes_per_pixel;
+        let bytes_per_pixel = self.info.bytes_per_pixel;
+        let pixel_offset = y * self.info.stride + x;
+        let byte_offset = pixel_offset * bytes_per_pixel;
 
-    // Read the color value from the framebuffer
-    let color = [
-        self.framebuffer[byte_offset],
-        self.framebuffer[byte_offset + 1],
-        self.framebuffer[byte_offset + 2],
-        0,
-    ];
-    
-    color
-}
-
-
-
-
-/// Draws a rectangle on the framebuffer.
-/// The rectangle's top-left corner is at (x, y) and its dimensions are defined by width and height.
-pub fn draw_rect(&mut self, x: usize, y: usize, width: usize, height: usize, color: [u8; 4]) {
-    if y + height > self.height() || x + width > self.width() {
-        return;
+        // Read the color value from the framebuffer
+        [
+            self.framebuffer[byte_offset],
+            self.framebuffer[byte_offset + 1],
+            self.framebuffer[byte_offset + 2],
+            0,
+        ]
     }
 
-    let bytes_per_pixel: usize = self.info.bytes_per_pixel;
+    /// Draws a rectangle on the framebuffer.
+    /// The rectangle's top-left corner is at (x, y) and its dimensions are defined by width and height.
+    pub fn draw_rect(&mut self, x: usize, y: usize, width: usize, height: usize, color: [u8; 4]) {
+        if y + height > self.height() || x + width > self.width() {
+            return;
+        }
 
-    // Draw top and bottom edges
-    for w in 0..width {
-        let top_pixel_offset: usize = y * self.info.stride + (x + w);
-        let bottom_pixel_offset: usize = (y + height - 1) * self.info.stride + (x + w);
+        let bytes_per_pixel: usize = self.info.bytes_per_pixel;
 
-        let top_byte_offset: usize = top_pixel_offset * bytes_per_pixel;
-        let bottom_byte_offset: usize = bottom_pixel_offset * bytes_per_pixel;
+        // Draw top and bottom edges
+        for w in 0..width {
+            let top_pixel_offset: usize = y * self.info.stride + (x + w);
+            let bottom_pixel_offset: usize = (y + height - 1) * self.info.stride + (x + w);
 
-        self.framebuffer[top_byte_offset..(top_byte_offset + bytes_per_pixel)].copy_from_slice(&color[..bytes_per_pixel]);
-        self.framebuffer[bottom_byte_offset..(bottom_byte_offset + bytes_per_pixel)].copy_from_slice(&color[..bytes_per_pixel]);
+            let top_byte_offset: usize = top_pixel_offset * bytes_per_pixel;
+            let bottom_byte_offset: usize = bottom_pixel_offset * bytes_per_pixel;
 
-        let _ = unsafe {
-            ptr::read_volatile(&self.framebuffer[top_byte_offset]);
-            ptr::read_volatile(&self.framebuffer[bottom_byte_offset]);
-        };
-    }
+            self.framebuffer[top_byte_offset..(top_byte_offset + bytes_per_pixel)]
+                .copy_from_slice(&color[..bytes_per_pixel]);
+            self.framebuffer[bottom_byte_offset..(bottom_byte_offset + bytes_per_pixel)]
+                .copy_from_slice(&color[..bytes_per_pixel]);
 
-    // Draw left and right edges
-    for h in 0..height {
-        let left_pixel_offset: usize = (y + h) * self.info.stride + x;
-        let right_pixel_offset: usize = (y + h) * self.info.stride + (x + width - 1);
-
-        let left_byte_offset: usize = left_pixel_offset * bytes_per_pixel;
-        let right_byte_offset: usize = right_pixel_offset * bytes_per_pixel;
-
-        self.framebuffer[left_byte_offset..(left_byte_offset + bytes_per_pixel)].copy_from_slice(&color[..bytes_per_pixel]);
-        self.framebuffer[right_byte_offset..(right_byte_offset + bytes_per_pixel)].copy_from_slice(&color[..bytes_per_pixel]);
-
-        let _ = unsafe {
-            ptr::read_volatile(&self.framebuffer[left_byte_offset]);
-            ptr::read_volatile(&self.framebuffer[right_byte_offset]);
-        };
-    }
-}
-
-
-/// Draws a filled rectangle on the framebuffer.
-/// The rectangle's top-left corner is at (x, y) and its dimensions are defined by width and height.
-pub fn draw_filled_rect(&mut self, x: usize, y: usize, width: usize, height: usize, color: [u8; 4]) {
-    if y + height > self.height() || x + width > self.width() {
-        return;
-    }
-
-    
-    let bytes_per_pixel: usize = self.info.bytes_per_pixel;
-    for w in 0..width { 
-        for h in 0..height {
-            let pixel_offset: usize = (y + h) * self.info.stride + (x + w);
-            let byte_offset: usize = pixel_offset * bytes_per_pixel;
-            self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)].copy_from_slice(&color[..bytes_per_pixel]);
-            let _ = unsafe {
-                ptr::read_volatile(&self.framebuffer[byte_offset]);
+            unsafe {
+                ptr::read_volatile(&self.framebuffer[top_byte_offset]);
+                ptr::read_volatile(&self.framebuffer[bottom_byte_offset]);
             };
         }
-    } 
-}
 
-/// Draws a line on the framebuffer using Bresenham's line algorithm.
-/// The line starts from the point (from_x, from_y) and ends at the point (to_x, to_y).
-pub fn draw_line(&mut self, mut from_x: usize, mut from_y: usize, to_x: usize, to_y: usize, color: [u8; 4]) {
-    let dx = (to_x as isize - from_x as isize).abs();
-    let dy = -(to_y as isize - from_y as isize).abs();
-    let sx = if from_x < to_x { 1 } else { -1 };
-    let sy = if from_y < to_y { 1 } else { -1 };
-    let mut err = dx + dy;
+        // Draw left and right edges
+        for h in 0..height {
+            let left_pixel_offset: usize = (y + h) * self.info.stride + x;
+            let right_pixel_offset: usize = (y + h) * self.info.stride + (x + width - 1);
 
-    loop {
-        self.write_pixel(from_x, from_y, color);
+            let left_byte_offset: usize = left_pixel_offset * bytes_per_pixel;
+            let right_byte_offset: usize = right_pixel_offset * bytes_per_pixel;
 
-        if from_x == to_x && from_y == to_y {
-            break;
-        }
+            self.framebuffer[left_byte_offset..(left_byte_offset + bytes_per_pixel)]
+                .copy_from_slice(&color[..bytes_per_pixel]);
+            self.framebuffer[right_byte_offset..(right_byte_offset + bytes_per_pixel)]
+                .copy_from_slice(&color[..bytes_per_pixel]);
 
-        let e2 = 2 * err;
-
-        if e2 >= dy {
-            err += dy;
-            from_x = ((from_x as isize) + sx) as usize;
-        }
-
-        if e2 <= dx {
-            err += dx;
-            from_y = ((from_y as isize) + sy) as usize;
+            unsafe {
+                ptr::read_volatile(&self.framebuffer[left_byte_offset]);
+                ptr::read_volatile(&self.framebuffer[right_byte_offset]);
+            };
         }
     }
-}
 
-/// Draws a circle on the framebuffer using Bresenham's circle algorithm.
-/// The center of the circle is at the point (cx, cy) and its radius is defined by `radius`.
-pub fn draw_circle(&mut self, cx: usize, cy: usize, radius: usize, color: [u8; 4]) {
-    let mut x = radius as isize - 1;
-    let mut y = 0isize;
-    let mut dx = 1isize;
-    let mut dy = 1isize;
-    let mut err = dx - ((radius as isize) << 1);
-
-    while x >= y {
-        self.write_pixel((cx as isize + x) as usize, (cy as isize + y) as usize, color);
-        self.write_pixel((cx as isize + y) as usize, (cy as isize + x) as usize, color);
-        self.write_pixel((cx as isize - y) as usize, (cy as isize + x) as usize, color);
-        self.write_pixel((cx as isize - x) as usize, (cy as isize + y) as usize, color);
-        self.write_pixel((cx as isize - x) as usize, (cy as isize - y) as usize, color);
-        self.write_pixel((cx as isize - y) as usize, (cy as isize - x) as usize, color);
-        self.write_pixel((cx as isize + y) as usize, (cy as isize - x) as usize, color);
-        self.write_pixel((cx as isize + x) as usize, (cy as isize - y) as usize, color);
-
-        if err <= 0 {
-            y += 1;
-            err += dy;
-            dy += 2;
+    /// Draws a filled rectangle on the framebuffer.
+    /// The rectangle's top-left corner is at (x, y) and its dimensions are defined by width and height.
+    pub fn draw_filled_rect(
+        &mut self,
+        x: usize,
+        y: usize,
+        width: usize,
+        height: usize,
+        color: [u8; 4],
+    ) {
+        if y + height > self.height() || x + width > self.width() {
+            return;
         }
 
-        if err > 0 {
-            x -= 1;
-            dx += 2;
-            err += dx - ((radius as isize) << 1);
+        let bytes_per_pixel: usize = self.info.bytes_per_pixel;
+        for w in 0..width {
+            for h in 0..height {
+                let pixel_offset: usize = (y + h) * self.info.stride + (x + w);
+                let byte_offset: usize = pixel_offset * bytes_per_pixel;
+                self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
+                    .copy_from_slice(&color[..bytes_per_pixel]);
+                unsafe {
+                    ptr::read_volatile(&self.framebuffer[byte_offset]);
+                };
+            }
         }
     }
-}
+
+    /// Draws a line on the framebuffer using Bresenham's line algorithm.
+    /// The line starts from the point (from_x, from_y) and ends at the point (to_x, to_y).
+    pub fn draw_line(
+        &mut self,
+        mut from_x: usize,
+        mut from_y: usize,
+        to_x: usize,
+        to_y: usize,
+        color: [u8; 4],
+    ) {
+        let dx = (to_x as isize - from_x as isize).abs();
+        let dy = -(to_y as isize - from_y as isize).abs();
+        let sx = if from_x < to_x { 1 } else { -1 };
+        let sy = if from_y < to_y { 1 } else { -1 };
+        let mut err = dx + dy;
+
+        loop {
+            self.write_pixel(from_x, from_y, color);
+
+            if from_x == to_x && from_y == to_y {
+                break;
+            }
+
+            let e2 = 2 * err;
+
+            if e2 >= dy {
+                err += dy;
+                from_x = ((from_x as isize) + sx) as usize;
+            }
+
+            if e2 <= dx {
+                err += dx;
+                from_y = ((from_y as isize) + sy) as usize;
+            }
+        }
+    }
+
+    /// Draws a circle on the framebuffer using Bresenham's circle algorithm.
+    /// The center of the circle is at the point (cx, cy) and its radius is defined by `radius`.
+    pub fn draw_circle(&mut self, cx: usize, cy: usize, radius: usize, color: [u8; 4]) {
+        let mut x = radius as isize - 1;
+        let mut y = 0isize;
+        let mut dx = 1isize;
+        let mut dy = 1isize;
+        let mut err = dx - ((radius as isize) << 1);
+
+        while x >= y {
+            self.write_pixel(
+                (cx as isize + x) as usize,
+                (cy as isize + y) as usize,
+                color,
+            );
+            self.write_pixel(
+                (cx as isize + y) as usize,
+                (cy as isize + x) as usize,
+                color,
+            );
+            self.write_pixel(
+                (cx as isize - y) as usize,
+                (cy as isize + x) as usize,
+                color,
+            );
+            self.write_pixel(
+                (cx as isize - x) as usize,
+                (cy as isize + y) as usize,
+                color,
+            );
+            self.write_pixel(
+                (cx as isize - x) as usize,
+                (cy as isize - y) as usize,
+                color,
+            );
+            self.write_pixel(
+                (cx as isize - y) as usize,
+                (cy as isize - x) as usize,
+                color,
+            );
+            self.write_pixel(
+                (cx as isize + y) as usize,
+                (cy as isize - x) as usize,
+                color,
+            );
+            self.write_pixel(
+                (cx as isize + x) as usize,
+                (cy as isize - y) as usize,
+                color,
+            );
+
+            if err <= 0 {
+                y += 1;
+                err += dy;
+                dy += 2;
+            }
+
+            if err > 0 {
+                x -= 1;
+                dx += 2;
+                err += dx - ((radius as isize) << 1);
+            }
+        }
+    }
     /// Draws a filled circle on the framebuffer using Bresenham's circle algorithm.
     /// The center of the circle is at the point (cx, cy) and its radius is defined by `radius`.
     pub fn draw_filled_circle(&mut self, cx: usize, cy: usize, radius: usize, color: [u8; 4]) {
@@ -476,24 +517,24 @@ pub fn draw_circle(&mut self, cx: usize, cy: usize, radius: usize, color: [u8; 4
         let mut dx = 1isize;
         let mut dy = 1isize;
         let mut err = dx - ((radius as isize) << 1);
-    
+
         while x >= y {
             for i in (cx as isize - x)..=(cx as isize + x) {
                 self.write_pixel(i as usize, (cy as isize + y) as usize, color);
                 self.write_pixel(i as usize, (cy as isize - y) as usize, color);
             }
-    
+
             for i in (cx as isize - y)..=(cx as isize + y) {
                 self.write_pixel(i as usize, (cy as isize + x) as usize, color);
                 self.write_pixel(i as usize, (cy as isize - x) as usize, color);
             }
-    
+
             if err <= 0 {
                 y += 1;
                 err += dy;
                 dy += 2;
             }
-    
+
             if err > 0 {
                 x -= 1;
                 dx += 2;
@@ -505,8 +546,6 @@ pub fn draw_circle(&mut self, cx: usize, cy: usize, radius: usize, color: [u8; 4
     pub fn change_text_color(&mut self, col: Color) {
         self.text_col = col;
     }
-
-
 }
 
 // Allows The Framebuffer To Be Used Between Threads

@@ -13,17 +13,17 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use fixed_size_block::FixedSizeBlockAllocator;
 use x86_64::{
     structures::paging::{
         mapper::MapToError, FrameAllocator, Mapper, Page, PageTableFlags, Size4KiB,
     },
     VirtAddr,
 };
-use fixed_size_block::FixedSizeBlockAllocator;
 
 pub mod bump;
-pub mod linked_list;
 pub mod fixed_size_block;
+pub mod linked_list;
 
 #[global_allocator]
 static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
@@ -31,8 +31,8 @@ static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAl
 pub const HEAP_START: usize = 0x_4444_4444_0000;
 pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 
-
-pub fn init_heap( // Takes In Mapper And Frame Allocator
+pub fn init_heap(
+    // Takes In Mapper And Frame Allocator
     mapper: &mut impl Mapper<Size4KiB>,
     frame_allocator: &mut impl FrameAllocator<Size4KiB>,
 ) -> Result<(), MapToError<Size4KiB>> {
@@ -44,7 +44,8 @@ pub fn init_heap( // Takes In Mapper And Frame Allocator
         Page::range_inclusive(heap_start_page, heap_end_page) // Creates A Range From Given Heap Pages
     };
 
-    for page in page_range { // For Each Page In Range
+    for page in page_range {
+        // For Each Page In Range
         let frame = frame_allocator
             .allocate_frame() // Allocate Frame For Page
             .ok_or(MapToError::FrameAllocationFailed)?;
@@ -54,13 +55,12 @@ pub fn init_heap( // Takes In Mapper And Frame Allocator
         };
     }
 
-    unsafe{ ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE); }
+    unsafe {
+        ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
+    }
 
     Ok(())
 }
-
-
-
 
 // A Wrapper Around spin::Mutex To Permit Trait Implementations
 pub struct Locked<A> {
@@ -82,7 +82,7 @@ impl<A> Locked<A> {
 // Align Address To Alignment
 // Align Needs To Be A Power Of 2
 fn align_up(addr: usize, align: usize) -> usize {
-    (addr + align - 1) & !(align - 1) // Bitwise Operations 
+    (addr + align - 1) & !(align - 1) // Bitwise Operations
 }
 // An Easier To Understand Version
 /*

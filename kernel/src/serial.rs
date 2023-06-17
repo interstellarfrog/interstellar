@@ -13,10 +13,10 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use uart_16550::SerialPort;
-use spin::Mutex;
+use core::fmt::Write;
 use lazy_static::lazy_static;
-use core::{fmt::Write};
+use spin::Mutex;
+use uart_16550::SerialPort;
 use x86_64::instructions::interrupts;
 
 lazy_static! { // Only Init Once On First Use
@@ -29,12 +29,13 @@ lazy_static! { // Only Init Once On First Use
 
 #[doc(hidden)]
 pub fn _print(args: ::core::fmt::Arguments) {
-    interrupts::without_interrupts(|| { // Disable Interrupts
-        SERIAL1.lock()
-        .write_fmt(args)
-        .expect("Serial Print Failed!");
+    interrupts::without_interrupts(|| {
+        // Disable Interrupts
+        SERIAL1
+            .lock()
+            .write_fmt(args)
+            .expect("Serial Print Failed!");
     });
-    
 }
 
 #[macro_export]

@@ -2,17 +2,17 @@
 #![no_main]
 #![feature(custom_test_frameworks)] // Allows Us To Run Custom Tests
 #![test_runner(kernel::test_runner)] // Defines The Test Runner Function
-#![reexport_test_harness_main = "test_main"] 
+#![reexport_test_harness_main = "test_main"]
 
-use core::panic::PanicInfo;
-use kernel::syscall::{ test_syscall_handler_serial};
-use kernel::init;
 use bootloader_api::{entry_point, BootInfo};
+use core::panic::PanicInfo;
+use kernel::init;
+use kernel::syscall::test_syscall_handler_serial;
 
 entry_point!(system_call_test_main);
 
-fn system_call_test_main(_boot_info: &'static BootInfo) -> ! {
-    init();
+fn system_call_test_main(boot_info: &'static mut BootInfo) -> ! {
+    init(boot_info);
 
     test_main();
     #[allow(clippy::empty_loop)]

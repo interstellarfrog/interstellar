@@ -25,12 +25,11 @@
 use core::panic::PanicInfo;
 
 use kernel::{
-    drivers::screen::framebuffer::{Color, FRAMEBUFFER},
+    drivers::screen::framebuffer::FRAMEBUFFER,
     serial_println,
     task::{console_handler::console_start, executor::Spawner},
 };
 
-use kernel::drivers::fs::initrd::read_initrd;
 use bootloader_api::{
     config::{BootloaderConfig, Mapping},
     entry_point, BootInfo,
@@ -69,6 +68,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
 
     let mut ramdisk_location = 0;
     let mut ramdisk_len = 0;
+
     if boot_info.ramdisk_addr.as_ref().is_some() {
         ramdisk_location = *boot_info.ramdisk_addr.as_ref().unwrap();
         ramdisk_len = boot_info.ramdisk_len;
@@ -88,12 +88,10 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
     //FRAMEBUFFER.get().unwrap().lock().draw_filled_rect(1, 1, 550, 550, Color::to_pixel(&Color::Blue, buffer_info));
     kernel::drivers::hid::mouse::init();
 
-
     //if ramdisk_len > 0 {
     //    let initrd_location = ramdisk_location as *const u8;
     //    read_initrd(initrd_location, ramdisk_len);
     //}
-
 
     debug_println!("Creating Task Executor");
 

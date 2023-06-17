@@ -14,32 +14,31 @@
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #[allow(unused_imports)]
-use crate::{serial_println};
+use crate::serial_println;
 
-use x86_64::structures::idt::{ InterruptStackFrame};
 use core::arch::asm;
+use x86_64::structures::idt::InterruptStackFrame;
 
 type SyscallHandler = fn() -> i64;
 static SYSCALL_TABLE: [Option<SyscallHandler>; 1] = [Some(write_syscall_handler)];
-
 
 // Causes Strange Behavior
 pub extern "x86-interrupt" fn syscall_handler(_stack_frame: InterruptStackFrame) {
     //println!("SYSCALL HANDLER: Started");
     let mut syscall_number: i32;
-    unsafe { 
+    unsafe {
         asm!("mov {0:r}, rax", out(reg) syscall_number);
-    //println!("SYSCALL: NUMBER: {}", syscall_number);
-    if syscall_number != 1 {
-        //println!("Invalid Syscall Number");
-    } else if let Some(syscall_handler_fn) = SYSCALL_TABLE[syscall_number as usize] {
-        //println!("SYSCALL HANDLER: Calling Function");
-        let result = syscall_handler_fn();
-         asm!("mov rax, {}", in(reg) result) 
-    } else {
-        //println!("SYSCALL NUMBER: {} INVALID", syscall_number)
+        //println!("SYSCALL: NUMBER: {}", syscall_number);
+        if syscall_number != 1 {
+            //println!("Invalid Syscall Number");
+        } else if let Some(syscall_handler_fn) = SYSCALL_TABLE[syscall_number as usize] {
+            //println!("SYSCALL HANDLER: Calling Function");
+            let result = syscall_handler_fn();
+            asm!("mov rax, {}", in(reg) result)
+        } else {
+            //println!("SYSCALL NUMBER: {} INVALID", syscall_number)
+        }
     }
-}
 }
 
 #[cfg(not(test))]
@@ -95,23 +94,20 @@ pub fn test_syscall_handler_serial() {
         let pointer = text.as_ptr();
         let ret: i32;
         serial_println!("inside of test_syscall_handler");
-        
-        
+
         asm!("lock mov rax, {0:r}", in(reg) 0);
         asm!("lock mov rdi, {0:r}", in(reg) 1);
         asm!("lock mov rsi, {}", in(reg) pointer);
         asm!("lock mov rdx, {}", in(reg) text.len());
         serial_println!("SYSCALL");
-        asm!("INT $0x80"); 
+        asm!("INT $0x80");
         serial_println!("SYSCALL");
         asm!("lock mov {}, rcx", out(reg) _);
         asm!("lock mov {}, r11", out(reg) _);
         asm!("lock mov {0:r}, rax", lateout(reg) ret);
         serial_println!("{}", ret);
     }
-    
 }
-
 
 pub fn test_syscall_handler() {
     unsafe {
@@ -119,7 +115,7 @@ pub fn test_syscall_handler() {
         let pointer = text.as_ptr();
         let _ret: i32;
         static mut SYSCALL_NUMBER: i32 = 1;
-        
+
         //println!("inside of test_syscall_handler");
         asm!("mov rax, {0:r}", in(reg) SYSCALL_NUMBER);
         asm!("mov rdi, {0:r}", in(reg) 1);
@@ -127,7 +123,7 @@ pub fn test_syscall_handler() {
         asm!("mov rdx, {}", in(reg) text.len());
         //println!("SYSCALL: Sending INT 0x80");
 
-        asm!("INT $0x80"); 
+        asm!("INT $0x80");
 
         //println!("SYSCALL: After Sending");
         asm!("mov {}, rcx", out(reg) _);
@@ -135,23 +131,21 @@ pub fn test_syscall_handler() {
         asm!("mov {0:r}, rax", lateout(reg) _ret);
         //println!("{}", ret);
     }
-    
 }
-
 
 pub fn new_test_syscall_handler() {
     let buf = "Hello From Asm!\n";
     let _ret: i32;
     unsafe {
         asm!("int 0x80",
-        in("rax") 1,
-        in("rdi") 1,
-        in("rsi") buf.as_ptr(),
-        in("rdx") buf.len(),
-        out("rcx") _,
-        out("r11") _,
-        lateout("rax") _ret,
-    );
+            in("rax") 1,
+            in("rdi") 1,
+            in("rsi") buf.as_ptr(),
+            in("rdx") buf.len(),
+            out("rcx") _,
+            out("r11") _,
+            lateout("rax") _ret,
+        );
     }
 
     //println!("write returned: {}", ret)

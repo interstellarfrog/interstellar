@@ -3,10 +3,9 @@
 #![feature(abi_x86_interrupt)]
 
 use core::panic::PanicInfo;
-use kernel::{ serial_print, exit_qemu, QemuExitCode, serial_println };
+use kernel::{exit_qemu, serial_print, serial_println, QemuExitCode};
 use lazy_static::lazy_static;
-use x86_64::structures::idt::{ InterruptDescriptorTable, InterruptStackFrame};
-
+use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
@@ -20,7 +19,10 @@ pub extern "C" fn _start() -> ! {
     panic!("Execution Continued After Stack Overflow")
 }
 
-extern "x86-interrupt" fn test_double_fault_handler(_stack_frame: InterruptStackFrame, _error_code: u64) -> ! {
+extern "x86-interrupt" fn test_double_fault_handler(
+    _stack_frame: InterruptStackFrame,
+    _error_code: u64,
+) -> ! {
     serial_println!("[Ok]");
     exit_qemu(QemuExitCode::Success);
     loop {}
@@ -31,12 +33,13 @@ fn panic(info: &PanicInfo) -> ! {
     kernel::test_panic_handler(info)
 }
 
-
 lazy_static! {
     static ref TEST_IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         unsafe {
-            idt.double_fault.set_handler_fn(test_double_fault_handler).set_stack_index(kernel::gdt::DOUBLE_FAULT_IST_INDEX);
+            idt.double_fault
+                .set_handler_fn(test_double_fault_handler)
+                .set_stack_index(kernel::gdt::DOUBLE_FAULT_IST_INDEX);
         }
         idt
     };
@@ -45,9 +48,6 @@ lazy_static! {
 pub fn init_test_idt() {
     TEST_IDT.load();
 }
-
-
-
 
 #[allow(unconditional_recursion)]
 fn stack_overflow() {

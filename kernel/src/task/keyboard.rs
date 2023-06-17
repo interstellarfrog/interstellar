@@ -20,10 +20,7 @@ use core::{
     task::{Context, Poll},
 };
 use crossbeam_queue::ArrayQueue;
-use futures_util::{
-    stream::Stream,
-    task::AtomicWaker,
-};
+use futures_util::{stream::Stream, task::AtomicWaker};
 
 static SCANCODE_QUEUE: OnceCell<ArrayQueue<u8>> = OnceCell::uninit();
 
@@ -39,7 +36,6 @@ pub(crate) fn add_scancode(scancode: u8) {
         } else {
             WAKER.wake();
         }
-    } else {
     }
 }
 

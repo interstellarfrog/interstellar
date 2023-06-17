@@ -13,24 +13,13 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use core::sync::atomic::{
-    AtomicUsize, 
-    Ordering, 
-    AtomicBool
-};
+use core::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-use alloc::{
-    sync::Arc, 
-    boxed::Box
-};
+use alloc::{boxed::Box, sync::Arc};
 
-use crate::{drivers::screen::framebuffer::{Color, FRAMEBUFFER}
-};
+use crate::drivers::screen::framebuffer::{Color, FRAMEBUFFER};
 
-use ps2_mouse::{
-    Mouse as MouseDevice, 
-    MouseState
-};
+use ps2_mouse::{Mouse as MouseDevice, MouseState};
 
 use conquer_once::spin::OnceCell;
 use crossbeam_utils::atomic::AtomicCell;
@@ -39,6 +28,7 @@ use spinning_top::Spinlock;
 
 static MOUSE: OnceCell<Mouse> = OnceCell::uninit();
 
+// 1 == Black, 2 = White, 0 = None
 const CURSOR: [u8; 170] = [
     1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
     1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -70,6 +60,9 @@ pub(crate) fn get() -> Option<Mouse> {
     MOUSE.get().cloned()
 }
 
+type OldMouseInfo = Arc<Mutex<AtomicCell<Option<Box<[[usize; 6]; CURSOR_SIZE]>>>>>;
+
+
 /// Mouse struct representing a mouse device.
 #[derive(Clone)]
 pub(crate) struct Mouse {
@@ -80,7 +73,7 @@ pub(crate) struct Mouse {
     last_x: Arc<AtomicUsize>,
     last_y: Arc<AtomicUsize>,
     first_draw: Arc<AtomicBool>,
-    last_pixel_pos_and_colors: Arc<Mutex<AtomicCell<Option<Box<[[usize; 6]; CURSOR_SIZE]>>>>>,
+    last_pixel_pos_and_colors: OldMouseInfo,
 }
 impl Default for Mouse {
     fn default() -> Self {
@@ -113,7 +106,6 @@ impl Default for Mouse {
     }
 }
 
-
 impl Mouse {
     /// Mouse handler function called when a mouse event occurs.
     fn handler(state: MouseState) {
@@ -130,8 +122,14 @@ impl Mouse {
             let old_pix_cols = mouse_obj.last_pixel_pos_and_colors.lock().take().unwrap();
             // Restore pixels at old cursor position
             for i in 0..CURSOR_SIZE {
-                let [pixel_x, pixel_y, pixel_color1, pixel_color2, pixel_color3, pixel_color4] = old_pix_cols[i];
-                let pixel_color = [pixel_color1 as u8, pixel_color2 as u8, pixel_color3 as u8, pixel_color4 as u8];
+                let [pixel_x, pixel_y, pixel_color1, pixel_color2, pixel_color3, pixel_color4] =
+                    old_pix_cols[i];
+                let pixel_color = [
+                    pixel_color1 as u8,
+                    pixel_color2 as u8,
+                    pixel_color3 as u8,
+                    pixel_color4 as u8,
+                ];
                 FRAMEBUFFER
                     .get()
                     .unwrap()
@@ -168,21 +166,24 @@ impl Mouse {
             let temp_y = y + (i / CURSOR_ROW_SIZE as usize);
 
             if pix == 1 {
-                FRAMEBUFFER
-                    .get()
-                    .unwrap()
-                    .lock()
-                    .write_pixel(temp_x, temp_y, Color::to_pixel(&Color::Black, buffer_info));
+                FRAMEBUFFER.get().unwrap().lock().write_pixel(
+                    temp_x,
+                    temp_y,
+                    Color::to_pixel(&Color::Black, buffer_info),
+                );
             } else if pix == 2 {
-                FRAMEBUFFER
-                    .get()
-                    .unwrap()
-                    .lock()
-                    .write_pixel(temp_x, temp_y, Color::to_pixel(&Color::White, buffer_info));
+                FRAMEBUFFER.get().unwrap().lock().write_pixel(
+                    temp_x,
+                    temp_y,
+                    Color::to_pixel(&Color::White, buffer_info),
+                );
             }
         }
 
-        mouse_obj.last_pixel_pos_and_colors.lock().store(Some(Box::new(required_pixels_to_write_back)));
+        mouse_obj
+            .last_pixel_pos_and_colors
+            .lock()
+            .store(Some(Box::new(required_pixels_to_write_back)));
         mouse_obj.state.store(Some(state));
         mouse_obj.set_pos();
         mouse_obj.last_x.store(x, Ordering::Relaxed);
@@ -210,14 +211,16 @@ impl Mouse {
         if dx > 0 {
             self.x.fetch_add(dx as usize, Ordering::Relaxed);
         } else {
-            self.x.fetch_sub(dx.unsigned_abs() as usize, Ordering::Relaxed);
+            self.x
+                .fetch_sub(dx.unsigned_abs() as usize, Ordering::Relaxed);
         }
 
         // Update the y-coordinate of the mouse position
         if dy > 0 {
             self.y.fetch_sub(dy as usize, Ordering::Relaxed);
         } else {
-            self.y.fetch_add(dy.unsigned_abs() as usize, Ordering::Relaxed);
+            self.y
+                .fetch_add(dy.unsigned_abs() as usize, Ordering::Relaxed);
         }
 
         // Limit the mouse position to the screen boundaries
@@ -228,7 +231,11 @@ impl Mouse {
     fn limit_pos(&self) {
         let x = self.x.load(Ordering::Relaxed);
         let y = self.y.load(Ordering::Relaxed);
-        let (width, height) = crate::drivers::screen::framebuffer::FRAMEBUFFER.get().unwrap().lock().size();
+        let (width, height) = crate::drivers::screen::framebuffer::FRAMEBUFFER
+            .get()
+            .unwrap()
+            .lock()
+            .size();
 
         // Ensure the x-coordinate is within the screen width
         if x > width - 1 {

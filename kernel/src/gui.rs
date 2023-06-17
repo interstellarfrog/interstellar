@@ -13,8 +13,8 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use alloc::{boxed::Box, vec::Vec, string::String};
 use crate::window_manager::WindowManager;
+use alloc::{boxed::Box, string::String, vec::Vec};
 
 // Define the main application window
 struct MainWindow {

@@ -23,7 +23,7 @@ fn main() {
     let bios_path = env!("BIOS_PATH");
 
     // Choose whether to start the UEFI or BIOS image
-    let uefi = false;
+    let uefi = false; // UEFI still needs some more code
 
     // Choose whether to run GDB for debugging
     let mut gdb = false;
@@ -83,7 +83,7 @@ fn main() {
 fn start_gdb(k_path: PathBuf) {
     let current_dir = env::current_dir().expect("Failed to get current directory.");
     let gdb_dir = current_dir.join("gdb-windows").join("bin");
-    env::set_current_dir(&gdb_dir).expect("Failed to change directory.");
+    env::set_current_dir(gdb_dir).expect("Failed to change directory.");
 
     let mut cmd_cmd = Command::new("cmd.exe");
     cmd_cmd.arg("/k");
@@ -94,7 +94,7 @@ fn start_gdb(k_path: PathBuf) {
     cmd_cmd.arg("-x").arg("gdbinit/.gdbinit");
     cmd_cmd.arg("-x").arg("gdbinit/target.gdb");
     cmd_cmd.arg("-ex").arg("add-symbol-file ../../target/debug/build/bootloader-61cf37ce9e863966/out/bin/bootloader-x86_64-bios-stage-4");
-    cmd_cmd.arg("-ex").arg(format!("add-symbol-file {}", k_path.to_string_lossy().replace("\\", "/")));
+    cmd_cmd.arg("-ex").arg(format!("add-symbol-file {}", k_path.to_string_lossy().replace('\\', "/")));
     cmd_cmd.arg("-x").arg("gdbinit/commands.gdb");
 
     let mut cmd_child = cmd_cmd

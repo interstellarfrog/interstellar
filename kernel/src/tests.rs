@@ -13,11 +13,11 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::allocator::HEAP_SIZE;
+use crate::print;
 use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
-use crate:: allocator::HEAP_SIZE;
-use crate::print;
 
 pub fn assert_eq_custom(x: u32, y: u32) {
     if x != y {
@@ -26,7 +26,6 @@ pub fn assert_eq_custom(x: u32, y: u32) {
     }
     print!("[OK]");
 }
-
 
 pub fn main() {
     print!("\nSimple Addition...");
@@ -66,18 +65,14 @@ pub fn main() {
     box_clone();
 }
 
-
-
 //########################################
 // In OS Tests
 //########################################
-
 
 fn simple_allocation() {
     let heap_value_1 = Box::new(41);
     assert_eq_custom(*heap_value_1, 41);
 }
-
 
 fn large_vec() {
     let n = 1000;
@@ -92,7 +87,7 @@ fn many_boxes_long_lived() {
     let long_lived = Box::new(1);
     for i in 0..HEAP_SIZE {
         let _x = Box::new(i);
-        if i == HEAP_SIZE / 3 || i == (HEAP_SIZE / 3) * 2  {
+        if i == HEAP_SIZE / 3 || i == (HEAP_SIZE / 3) * 2 {
             print!(".");
         }
     }
@@ -123,10 +118,9 @@ fn box_swap() {
     assert_eq_custom(*box2, 42);
 }
 
+#[allow(clippy::redundant_clone)]
 fn box_clone() {
     let box1 = Box::new(42);
     let box2 = box1.clone();
     assert_eq_custom(*box1, *box2);
 }
-
-

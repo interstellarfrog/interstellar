@@ -13,8 +13,8 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use alloc::alloc::{GlobalAlloc, Layout};
 use super::{align_up, Locked};
+use alloc::alloc::{GlobalAlloc, Layout};
 use core::ptr;
 
 /// A simple bump allocator that allocates memory linearly from a fixed heap.
@@ -28,7 +28,7 @@ pub struct BumpAllocator {
 impl BumpAllocator {
     /// Creates a new instance of `BumpAllocator`.
     pub const fn new() -> Self {
-        BumpAllocator {  
+        BumpAllocator {
             heap_start: 0,
             heap_end: 0,
             next: 0,
@@ -71,7 +71,7 @@ unsafe impl GlobalAlloc for Locked<BumpAllocator> {
             // Allocate memory
             bump.next = alloc_end;
             bump.allocations += 1;
-            alloc_start as *mut u8 
+            alloc_start as *mut u8
         }
     }
 
