@@ -172,6 +172,12 @@ Available Args:
 
 BIOS tests take a long time to run (as much as 30 seconds each) for some reason, I will look into this eventually but for now only run them when needed.
 
+# Contributing
+
+Many things need to be implemented see to_do.txt
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for requirements
+
 # Want to learn how to code your own OS in rust?
 
 If you're interested in coding your own OS in Rust, check out the following resources:
