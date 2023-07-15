@@ -1,3 +1,7 @@
+
+
+- If your not a big code writter you can still help by documenting code if you understand it
+
 # Requirements
 
 - Write all code in rust - I am trying to keep the github code usage at 100% for rust, for assembly use `core::arch::asm!` or `core::arch::global_asm!`
@@ -10,12 +14,12 @@
 
 - If you think a test may be required for the code you added feel free to add one (just copy the basic_boot test and edit it)
 
-- Some parts of the OS run in "parrallel" for example interrupt handlers so if a struct is needed by an interrupt handler or something else that runs in "parrallel" make sure you add locking mechanisms for example:
+- Some parts of the OS run in "total parrallel" (they execute single assembly instructions then switch to a whole different function) for example interrupt handlers (they get interrupted at any time when other instructions could be running) so if a struct is needed by an interrupt handler or something else that runs in "total parrallel" make sure you add locking mechanisms so a race condition does not occur and when using locks avoid deadlocks for example:
 
 ```Rust
 pub static FRAMEBUFFER: conquer_once::spin::OnceCell<spinning_top::spinlock::Spinlock<FrameBufferWriter>> = OnceCell::uninit();
 
-fn init frame_buffer() {
+fn main() {
   FRAMEBUFFER.init_once(|| { // This only needs to be done once for the whole code
         if let Some(info) = BOOT_INFO.get().unwrap().lock().framebuffer_info {
             if let Some(buffer) = boot_info.framebuffer.as_mut() {
@@ -44,6 +48,14 @@ fn init frame_buffer() {
 
   if value1 == 1 && FRAMEBUFFER.get().unwrap().lock().get_value2() == 2 {} // Works fine
 
+  // For functions that can occur at any time - hardware called functions, call this before getting another lock on it:
+
+  unsafe {FRAMEBUFFER.get().unwrap().force_unlock()};
+
+  // Now you can use it
+
+  FRAMEBUFFER.get().unwrap().lock().do_something();
+  
 }
 
 
