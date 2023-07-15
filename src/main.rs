@@ -127,7 +127,7 @@ fn start_gdb(os_path: PathBuf) {
 }
 
 #[cfg(target_os = "linux")]
-fn start_gdb(k_path: PathBuf) {
+fn start_gdb(os_path: PathBuf) {
     let mut cmd_cmd = Command::new("gnome-terminal");
 
     cmd_cmd.arg("--").arg("gdb.exe");
