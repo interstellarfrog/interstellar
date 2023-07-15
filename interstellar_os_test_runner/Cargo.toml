@@ -1,0 +1,12 @@
+[package]
+name = "interstellar_os_test_runner"
+version = "0.1.1"
+edition = "2021"
+authors = ["interstellarfrog"]
+
+[dependencies]
+bootloader = { git = "https://github.com/rust-osdev/bootloader.git", package = "bootloader", version = "0.11.4" }
+regex = "1.7"
+# used for UEFI booting in QEMU
+ovmf-prebuilt = "0.1.0-alpha.1"    # False error, works fine
+conquer-once = "0.4.0"

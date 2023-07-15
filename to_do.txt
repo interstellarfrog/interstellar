@@ -1,0 +1,67 @@
+make function to power of machine using ACPI
+configure APIC timer and PIT
+make measurable time frames for benchmarking and sleep(seconds: 0.5)
+make virtual file system
+make SATA driver and connect to VFS
+enter user mode with init program
+make scheduler for user mode - make PCB (process controll block) and every timer interrupt switch task and registers (depending on usage and priority levels) 
+make multiproccesing - SMP
+Look into AVX
+implement system calls
+Make A GUI framework - make a compatible X11 server in rust / or maybe we can just replace each GUI lib - probably the hardest thing to do in the whole OS
+
+Fake compatible X11 server {
+
+Intercepting calls of Linux GUI app binaries, simulating the X window server, and implementing a system call to write to the framebuffer
+
+objectives:
+
+Replicate the X11 Protocol: The X Window System, X11, is a windowing system for bitmap displays. 
+GUI applications communicate with X servers using the X11 protocol. 
+Our goal is to replicate this protocol to intercept the communication between the app and the X server.
+Check documentation and specifications about the X11 protocol.
+Create the System Call to Write to the Framebuffer: The system call should take the parameters to write pixels on the display (i.e., coordinate and color information) and execute the operation.
+Create a Simulation of the X Window Server: This will be responsible for parsing the X11 protocol commands from the application and translating them into a series of system calls to write to the framebuffer.
+
+
+
+Simulate X Window Server from User Mode:
+
+should be able to interpret the incoming X11 protocol requests and translate them into calls to write windows ect whenever an app wants to draw something on the screen.
+
+listen on TCP/IP ports 6000 + extra monitor number
+
+Wait for connections from user processes
+
+}
+
+Create a whole X11 server in rust {
+    this would be a nightmare but would be worth it if it works in the end
+
+}
+
+Replace existing libraries {
+    instead of implementing a whole X11 server we could instead implement a few GUI frameworks and change the underlying X11 server communication to instead communicate with our renderer
+
+    this has some limitations though as apps that directly use X11 server communication without a library will not work (electron apps ect)
+}
+
+Using the existing X11 server and libraries {
+    this may be possible depending on the licenses
+
+    the X11 server uses system calls and interprocess communication so if we add the needed features it could just work?
+
+    then we can wrap the X11 libary functions in rust to make a X11 rust lib
+
+    then from there we can develop the GUI using the X11 server
+}
+
+
+
+Make A secure login screen using Hashing - New Password: 1. get new password 2. hash 3. store hash in file with highest permissions ,Login With Password: 1. hash login password 2. get correct password hash 3. Compare  - make sure to drop(password) before starting any user processes
+Make An EXE Executor
+PCI driver
+NIC driver
+Port NVIDIA/AMD GPU DRIVERS
+Port rust compiler
+make programs - games, web browser

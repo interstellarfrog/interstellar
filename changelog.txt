@@ -1,0 +1,39 @@
+Added test arg parsing for example "cargo test -- --test stack_overflow --test basic_boot --verbose" runs stack_overflow and basic_boot only and prints test runner startup details
+
+Fixed console "clear" bug where it would always print a new line
+
+Added function to show aproximate total memory
+
+Added APCI support -- We can now use PS/2 keyboard and mouse input with UEFI!!!!
+
+Added ACPI support
+
+Changed memory.rs and allocator.rs
+
+Added UEFI support - building is done with aliases now to make it easier
+
+Added full pseudo random number and letter generator
+
+Added logger with various logging levels and a traceback to show the steps before the error
+
+Added arg parsing for example "cargo run -- --gdb" runs with gdb enabled
+
+Restructered Files And Optimized Code
+
+Added testing framework just run "cargo test"
+
+-------------------------------------------------------------------
+
+Changed From VGA Text Mode To New Bootloader Version With Framebuffer
+
+Updated Old VGA Code To Framebuffer Code
+
+Added Drawing Functions To Framebuffer Code
+
+Added PS/2 Mouse 
+
+Restructered Files And Optimized Code
+
+Updated ReadMe
+
+Added initrd(Initial Ramdisk) and initrd generator which takes all files in the initrd-files folder and makes them into the initrd file accessible to the OS in memory which I then made a reader for

@@ -1,0 +1,35 @@
+[package]
+name = "interstellar_os_builder"
+description = "This is used to run/build interstellar_os"
+version = "0.1.1"
+edition = "2021"
+authors = ["interstellarfrog"]
+
+[build-dependencies]
+bootloader = { git = "https://github.com/rust-osdev/bootloader.git", package = "bootloader", version = "0.11.4" }
+bootloader_boot_config = { git = "https://github.com/rust-osdev/bootloader.git", package = "bootloader-boot-config", version = "0.11.4" }
+interstellar_os = { path = "interstellar_os", artifact = "bin", target = "x86_64-unknown-none" } 
+walkdir = "2.3.3"
+
+
+[dependencies]
+# used for UEFI booting in QEMU
+ovmf-prebuilt = "0.1.0-alpha.1"    # False error, works fine
+
+[dev-dependencies]
+interstellar_os_test_runner = { path = "interstellar_os_test_runner" }
+interstellar_os = { path = "interstellar_os", artifact = "bin", target = "x86_64-unknown-none", default-features = false } 
+
+[workspace]
+members = ["interstellar_os", "interstellar_os_test_runner"]
+
+[profile.dev]
+opt-level = 0
+debug = true
+panic = "abort"
+ 
+[profile.release]
+opt-level = 3
+debug = false
+strip = true
+lto = true

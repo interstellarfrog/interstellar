@@ -1,0 +1,71 @@
+[package]
+name = "interstellar_os"
+version = "0.1.1"
+edition = "2021"
+authors = ["interstellarfrog"]
+
+[features]
+test = []
+UEFI = []
+
+# CHANGING DEPENDENCIES VERSIONS MAY CAUSE ERRORS
+[target.'cfg(target_arch = "x86_64")'.dependencies]
+# And We Need llvm-tools-preview component for Bootloader - rustup component add llvm-tools-preview
+bootloader_api = { git = "https://github.com/rust-osdev/bootloader.git", package = "bootloader_api", version = "0.11.4" }
+# Makes It So That Reads And Writes To Memory Wont Be Optimized Away By The Compiler
+volatile = "0.4.6"
+# For Making Statics That Initialize At Run Time And Not Compile Time
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] } # With No Standard lib
+# This Is Used To Make Spinlocks Which Can Be Used To Lock A Resource And Other Programs Will Constantly Run A Loop Requesting Access (But It Will Only Run The Programs Loops Seperatly) 
+# And When The Program Is Free The Thread/Program Trying To Access It Will Be Given Access
+spin = "0.9.8"
+# For Many x86_64 Functions
+x86_64 = "0.14.10"
+# This Is Used For Sending Data Over The Serial Port
+uart_16550 = "0.2.18"
+# This Is Used For The PIC
+pic8259 = "0.10.4"
+# Used For Translating PS2 Keyboard Scan Codes
+pc-keyboard = "0.7.0"
+# Used For Translating Ps2 Mouse Packets
+ps2-mouse = "0.1.4"
+# Used For Fallback Allocator
+linked_list_allocator = "0.10.5"
+
+crossbeam-queue = { version = "0.3.8", default-features = false, features = ["alloc"] }
+crossbeam-utils = { version = "0.8.15", default-features = false, features = ["nightly"] }
+conquer-once = { version = "0.4.0", default-features = false }
+futures-util = { version = "0.3.28", default-features = false, features = ["alloc"] }
+spinning_top = "0.2.5"
+
+raw-cpuid = "11.0.1"
+
+acpi = "4.1.1"
+
+x2apic = "0.4.2"
+
+os_units = "0.4.2"
+
+aml = {git = "https://github.com/rust-osdev/acpi.git", version = "0.16.4", default-features = false, optional = false, package = "aml"}
+
+
+[dependencies.noto-sans-mono-bitmap]
+version = "0.2.0"
+default-features = false
+features = [
+    "regular",
+    "size_16",
+    "unicode-basic-latin",
+    # required for the fallback char '�'
+    "unicode-specials",
+]
+
+[profile.dev]
+opt-level = 0
+debug = true
+ 
+[profile.release]
+opt-level = 3
+debug = false
+strip = true
+lto = true
