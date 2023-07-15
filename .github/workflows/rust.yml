@@ -33,7 +33,7 @@ jobs:
       run: cargo -Z unstable-options config get
     
     - name: Build
-      run: cargo build --verbose
+      run: cargo build -Z bindeps --verbose
       
     - name: Check
-      run: cargo check --verbose
+      run: cargo check -Z bindeps --verbose
