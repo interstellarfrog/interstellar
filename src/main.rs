@@ -14,7 +14,7 @@
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #![feature(custom_test_frameworks)]
-#![test_runner(test_runner::test_runner)]
+#![test_runner(interstellar_os_test_runner::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 use std::path::PathBuf;
