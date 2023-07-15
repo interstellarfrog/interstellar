@@ -1,9 +1,0 @@
-# We Need To Recompile Core And Compiler Builtins For Our OS
-# And Rust Needs Some Memory Functions Which By Default Are In The Lib C Of The System But We Change This By Setting This To The Ones In The Compiler Builtins Crate
-# As This Is Currently Unstable We Need Rust Nightly
-#[unstable]
-#build-std-features = ["compiler-builtins-mem"] # Requires Rust nightly 2020-09-30
-#build-std = ["core", "compiler_builtins", "alloc"] # Recompile These For Our Custom Target
-
-[build]
-target = "x86_64-unknown-none"
