@@ -1,4 +1,4 @@
-# Description
+# interstellar OS
 
 This project is an Operating System written fully in Rust for x86 64bit (X86_64) that supports both UEFI and BIOS systems.
 
