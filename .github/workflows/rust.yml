@@ -25,5 +25,5 @@ jobs:
     - run: cargo --version --verbose
     - run: cargo -Z unstable-options config get
     
-    - run: cargo build --verbose
+    - run: cargo build --verbose --ignore-rust-version
     - run: cargo check --verbose
