@@ -1,2 +1,30 @@
 [unstable]
+# enable the unstable artifact-dependencies feature
 bindeps = true
+
+[alias]
+# Build  Bios
+bb = "build"
+bbr = "build --release"
+
+# Build UEFI
+bu = "build --features interstellar_os/UEFI"
+bur = "build --release --features interstellar_os/UEFI"
+
+# Run UEFI
+u = "run --features interstellar_os/UEFI -- --uefi"
+ur = "run --release --features interstellar_os/UEFI -- --uefi"
+
+uefi = "run --features interstellar_os/UEFI -- --uefi"
+UEFI = "run --features interstellar_os/UEFI -- --uefi"
+uefirelease = "run --release --features interstellar_os/UEFI -- --uefi"
+UEFIrelease = "run --release --features interstellar_os/UEFI -- --uefi"
+
+# Run Bios
+b = "run -- --bios"
+br = "run --release -- --bios"
+
+bios = "run -- --bios"
+BIOS = "run -- --bios"
+biosrelease = "run --release --features interstellar_os/UEFI -- --uefi"
+BIOSrelease = "run --release --features interstellar_os/UEFI -- --uefi"
