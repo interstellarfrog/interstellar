@@ -148,3 +148,8 @@ fn start_gdb(os_path: PathBuf) {
 
     cmd_child.wait().unwrap();
 }
+
+#[cfg(target_os = "macos")]
+fn start_gdb(_os_path: PathBuf) {
+    todo!();
+}
