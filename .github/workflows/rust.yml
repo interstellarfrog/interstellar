@@ -19,9 +19,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    
-    - name: Change edition
-      run: rustup override set 2021
       
     - name: Update
       run: rustup update && rustup update nightly && rustup default nightly
@@ -36,7 +33,7 @@ jobs:
       run: cargo -Z unstable-options config get
     
     - name: Build
-      run: cargo build --verbose --ignore-rust-version
+      run: cargo build --verbose
       
     - name: Check
       run: cargo check --verbose
