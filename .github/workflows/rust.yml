@@ -26,7 +26,5 @@ jobs:
     - run: cargo --version --verbose
     
     - name: Build
-      run: cargo build --verbose
-      
-    - name: Check
-      run: cargo check --verbose
+    - run: cargo build --verbose
+    - run: cargo check --verbose
