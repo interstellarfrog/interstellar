@@ -1,5 +1,8 @@
 # interstellar OS
 
+![Building?](https://img.shields.io/github/actions/workflow/status/interstellarfrog/interstellar_os/rust.yml?logo=github) ![Issue Count](https://img.shields.io/github/issues/interstellarfrog/interstellar_os) ![Top Language Percentage](https://img.shields.io/github/languages/top/interstellarfrog/interstellar_os) ![GitHub All Releases Downloads](https://img.shields.io/github/downloads/interstellarfrog/interstellar_os/total) ![Stars](https://img.shields.io/github/stars/interstellarfrog/interstellar_os) ![License](https://img.shields.io/github/license/interstellarfrog/interstellar_os)
+
+
 This project is an Operating System written fully in Rust for x86 64bit (X86_64) that supports both UEFI and BIOS systems.
 
 ### Objectives
@@ -35,6 +38,14 @@ These are some hidden features you might be interested in:
 - Initrd generator and parser: This allows loading files into the kernel's memory on initial launch. These can be used for anything from drivers to preference files.
 - Executor: This can be used to execute co-operative tasks in the kernel seemingly at the same time using async code.
 
+### v0.0.1 Running
+
+![qemu1.png](images/qemu1.jpg)
+
+![qemu2.png](images/qemu2.png)
+
+
+
 # Running the OS
 
 I highly recommend using QEMU as described below, but you can use any of the other available options.
@@ -53,43 +64,40 @@ The easiest way to run this is the QEMU virtual machine.
 
 QEMU Downloads:
 
-[Windows-64 Bit](https://qemu.weilnetz.de/w64/)
+* [Windows-64 Bit](https://qemu.weilnetz.de/w64/)
 
-[Windows-32 Bit](https://qemu.weilnetz.de/w32/)
+* [Windows-32 Bit](https://qemu.weilnetz.de/w32/)
 
-[Linux](https://www.qemu.org/download/#linux)
+* [Linux](https://www.qemu.org/download/#linux)
 
-[MacOS](https://www.qemu.org/download/#macos)
+* [MacOS](https://www.qemu.org/download/#macos)
 
 After installing QEMU, I recommend adding it to your environment path variable. Then, run the uefi or bios .img file using QEMU with the correct image name:
 
 `qemu-system-x86_64 -cpu max -drive format=raw,file=interstellar_bios.img`
 
-For using the UEFI .img version QEMU does not support this without us adding custom UEFI firmware which you can download from here:
-
-[https://github.com/rust-osdev/ovmf-prebuilt/releases/tag/v0.20220719.209%2Bgf0064ac3af](https://github.com/rust-osdev/ovmf-prebuilt/releases/tag/v0.20220719.209%2Bgf0064ac3af) Get OVMF-pure-efi.fd
+For using the UEFI .img version QEMU does not support this without us adding custom UEFI firmware which you can download from here: 
+- Get OVMF-pure-efi.fd - [link](https://github.com/rust-osdev/ovmf-prebuilt/releases/tag/v0.20220719.209%2Bgf0064ac3af) 
 
 Add the file to the same directory as the .img and run this command with the correct image name:
 
 `qemu-system-x86_64 -cpu max -bios OVMF-pure-efi.fd -drive format=raw,file=interstellar_uefi.img`
-
-![qemu1.png](images/qemu1.jpg)
-
-![qemu2.png](images/qemu2.png)
 
 ## Virtual box
 
 VirtualBox takes some more setup than QEMU.
 
 1. Launch VirtualBox and make a new empty unknown 64-bit machine.
+
 ![create_os_vbox.png](images/create_os_vbox.png)
 
 2. Allocate the desired number of CPUs and a reasonable amount of memory for the machine if you are using the UEFI version set EFI enabled. Then click on "Use an existing virtual hard disk file," add the .VDI file, and select it.
+
 ![create_os_vbox2.png](images/create_os_vbox2.png)
 
 3. Then run it!
-![vbox1.jpg](images/vbox1.jpg)
 
+![vbox1.jpg](images/vbox1.jpg)
 ![vbox2.jpg](images/vbox2.png)
 
 # Manually building
