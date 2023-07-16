@@ -12,8 +12,6 @@ use x86_64::{
 
 use os_units::{Bytes, NumOfPages};
 
-use crate::other::log::LOGGER;
-
 lazy_static! {
     pub static ref MAPPER: Mutex<Option<OffsetPageTable<'static>>> = Mutex::new(None);
     pub static ref FRAME_ALLOCATOR: Mutex<Option<BootInfoFrameAllocator>> = Mutex::new(None);
@@ -45,8 +43,6 @@ pub unsafe fn init(physical_memory_offset: u64, memory_regions: &'static mut Mem
     let frame_allocator = unsafe { BootInfoFrameAllocator::init(memory_regions) };
 
     let _ = FRAME_ALLOCATOR.lock().insert(frame_allocator);
-
-    LOGGER.get().unwrap().lock().info("Memory initialized");
 }
 
 unsafe fn active_level_4_table(physical_memory_offset: u64) -> &'static mut PageTable {

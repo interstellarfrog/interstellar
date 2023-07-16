@@ -21,6 +21,9 @@
 #![cfg(not(feature = "std"))]
 
 use crate::other::log::{Logger, BACKTRACE, BACKTRACE_INDEX, MAX_BACKTRACE_ENTRIES};
+use alloc::string::String;
+use alloc::vec as v;
+use alloc::vec::Vec;
 use bootloader_api::BootInfo as BI;
 use core::env;
 use drivers::fs::initrd;
@@ -28,6 +31,7 @@ use drivers::screen::framebuffer::{FrameBufferWriter, FRAMEBUFFER};
 use other::assembly::hlt_loop;
 use other::info::{BootInfo, Info, BOOT_INFO, INFO};
 use other::log::{LogLevel, LOGGER};
+use task::console_handler::{ConsoleInfo, CONSOLE_INFO};
 use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 
@@ -170,6 +174,17 @@ pub fn init(boot_info: &'static mut BI) {
         spinning_top::Spinlock::new(Info { os_version })
     });
 
+    CONSOLE_INFO.init_once(|| {
+        let console_lines: Vec<String> = v![];
+
+        spinning_top::Spinlock::new(ConsoleInfo {
+            console_lines,
+            temp_line: String::new(),
+            max_lines: 400,
+            current_line_index: 0,
+        })
+    });
+
     LOGGER
         .get()
         .unwrap()
@@ -188,7 +203,11 @@ pub fn init(boot_info: &'static mut BI) {
         }
     });
 
-    LOGGER.get().unwrap().lock().info("Initializing Memory");
+    LOGGER
+        .get()
+        .unwrap()
+        .lock()
+        .trace(Some("Initializing Memory"), file!(), line!());
 
     if let bootloader_api::info::Optional::Some(phys_mem_offset) = boot_info.physical_memory_offset
     {
@@ -196,6 +215,14 @@ pub fn init(boot_info: &'static mut BI) {
     } else {
         panic!("No physical memory offset given from bootloader");
     }
+
+    // Do not use print, println before this point
+
+    LOGGER.get().unwrap().lock().info("Logger initialized");
+
+    LOGGER.get().unwrap().lock().info("Framebuffer initialized");
+
+    LOGGER.get().unwrap().lock().info("Memory initialized");
 
     LOGGER.get().unwrap().lock().info(&alloc::format!(
         "total memory: {}",

@@ -2,6 +2,7 @@ make function to power of machine using ACPI
 configure APIC timer and PIT
 make measurable time frames for benchmarking and sleep(seconds: 0.5)
 make virtual file system
+get GDB to work properly
 make SATA driver and connect to VFS
 enter user mode with init program
 make scheduler for user mode - make PCB (process controll block) and every timer interrupt switch task and registers (depending on usage and priority levels) 

@@ -97,44 +97,16 @@ impl Color {
 
 pub static FRAMEBUFFER: OnceCell<Spinlock<FrameBufferWriter>> = OnceCell::uninit();
 
-/// Prints to framebuffer
-#[macro_export]
-macro_rules! print {
-    ($($arg:tt)*) => {
-        $crate::drivers::screen::framebuffer::_print(format_args!($($arg)*))
-    };
-}
-
-/// Prints to framebuffer, appending a newline.
-#[macro_export]
-macro_rules! println {
-    () => ($crate::serial_print!("\n"));
-    ($fmt:expr) => ($crate::print!(concat!($fmt, "\n")));
-    ($fmt:expr, $($arg:tt)*) => ($crate::print!(
-        concat!($fmt, "\n"), $($arg)*));
-}
-
-#[doc(hidden)]
-pub fn _print(args: fmt::Arguments) {
-    use fmt::Write;
-    use x86_64::instructions::interrupts;
-    interrupts::without_interrupts(|| {
-        if let Some(fb) = FRAMEBUFFER.get() {
-            fb.lock().write_fmt(args).unwrap()
-        }
-    });
-}
-
 /// Additional vertical space between lines
-const LINE_SPACING: usize = 2;
+pub const LINE_SPACING: usize = 2;
 /// Additional horizontal space between characters.
-const LETTER_SPACING: usize = 0;
+pub const LETTER_SPACING: usize = 0;
 
 /// Padding from the border. Prevent that font is too close to border.
 pub const BORDER_PADDING: usize = 1;
 
 /// Constants for the usage of the [`noto_sans_mono_bitmap`] crate.
-mod font_constants {
+pub mod font_constants {
     use super::*;
 
     /// Height of each char raster. The font size is ~0.84% of this. Thus, this is the line height that
@@ -166,7 +138,7 @@ fn get_char_raster(c: char) -> RasterizedChar {
 /// Allows logging text to a pixel-based framebuffer.
 pub struct FrameBufferWriter {
     framebuffer: &'static mut [u8],
-    info: FrameBufferInfo,
+    pub info: FrameBufferInfo,
     x_pos: usize,
     y_pos: usize,
     text_col: Color,
@@ -234,6 +206,7 @@ impl FrameBufferWriter {
             '\n' => self.newline(),
             '\r' => self.carriage_return(),
             c => {
+
                 let new_xpos = self.x_pos + font_constants::CHAR_RASTER_WIDTH;
                 if new_xpos >= self.width() {
                     self.newline();
@@ -241,6 +214,7 @@ impl FrameBufferWriter {
                 let new_ypos =
                     self.y_pos + font_constants::CHAR_RASTER_HEIGHT.val() + BORDER_PADDING;
                 if new_ypos >= self.height() {
+                    // Shift lines up by 1
                     self.clear();
                 }
                 self.write_rendered_char(get_char_raster(c), color);
