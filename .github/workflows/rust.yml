@@ -28,6 +28,9 @@ jobs:
     - name: Add Target x86_64-unknown-none
       run: rustup target add x86_64-unknown-none
     
+    - name: Add Rust Src
+      run: rustup component add rust-src
+
     - name: Add LLVM-Tools-Preview
       run: rustup component add llvm-tools-preview
       
