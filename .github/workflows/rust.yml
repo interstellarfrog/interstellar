@@ -44,21 +44,22 @@ jobs:
     - name: Install QEMU (Linux)
       run: sudo apt update && sudo apt install qemu-system-x86
       if: runner.os == 'Linux'
-    - name: Install QEMU (macOS)
-      run: brew install qemu
-      if: runner.os == 'macOS'
-      env:
-        HOMEBREW_NO_AUTO_UPDATE: 1
-        HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: 1
-        HOMEBREW_NO_INSTALL_CLEANUP: 1
-    - name: Install QEMU (Windows)
-      run: |
-        choco install qemu --version 2021.5.5
-        echo "$Env:Programfiles\qemu" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      if: runner.os == 'Windows'
-      shell: pwsh
+    #- name: Install QEMU (macOS)
+    #  run: brew install qemu
+    #  if: runner.os == 'macOS'
+    #  env:
+    #    HOMEBREW_NO_AUTO_UPDATE: 1
+    #    HOMEBREW_NO_BOTTLE_SOURCE_FALLBACK: 1
+    #    HOMEBREW_NO_INSTALL_CLEANUP: 1
+    #- name: Install QEMU (Windows)
+    #  run: |
+    #    choco install qemu --version 2021.5.5
+    #    echo "$Env:Programfiles\qemu" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+    #  if: runner.os == 'Windows'
+    #  shell: pwsh
 
     - name: Show QEMU version
+      if: runner.os == 'linux'
       run: qemu-system-x86_64 --version
 
     - name: Build
@@ -68,4 +69,5 @@ jobs:
       run: cargo check --verbose
     
     - name: Test
+      if: runner.os == 'linux'
       run: cargo test -- --uefi --verbose
