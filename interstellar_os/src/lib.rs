@@ -226,15 +226,11 @@ pub fn init(boot_info: &'static mut BI) {
 
     LOGGER.get().unwrap().lock().info(&alloc::format!(
         "total memory: {}",
-        memory::MEMORY.lock().as_ref().unwrap().total_memory
+        memory::MEMORY.get().unwrap().lock().total_memory
     ));
     LOGGER.get().unwrap().lock().info(&alloc::format!(
         "total memory: {}GB",
-        memory::MEMORY
-            .lock()
-            .as_ref()
-            .unwrap()
-            .total_mem_gigabytes()
+        memory::MEMORY.get().unwrap().lock().total_mem_gigabytes()
     ));
 
     let ramdisk_addr = BOOT_INFO.get().unwrap().lock().ramdisk_addr; // Stops deadlock

@@ -55,6 +55,8 @@ unsafe impl GlobalAlloc for Locked<BumpAllocator> {
     ///
     /// This function is unsafe because it performs low-level memory allocation operations.
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        crate::memory::MEMORY.get().unwrap().force_unlock();
+        crate::memory::MEMORY.get().unwrap().lock().takeaway_from_used_mem(layout.size().try_into().unwrap());
         // Lock to stop data races
         let mut bump = self.lock(); // Mutable reference to wrapped allocator type
 

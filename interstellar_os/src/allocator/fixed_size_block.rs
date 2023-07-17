@@ -38,6 +38,8 @@ unsafe impl GlobalAlloc for Locked<FixedSizeBlockAllocator> {
     ///
     /// This function is unsafe because it performs low-level memory allocation operations.
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        crate::memory::MEMORY.get().unwrap().force_unlock();
+        crate::memory::MEMORY.get().unwrap().lock().add_to_used_mem(layout.size().try_into().unwrap());
         let mut allocator = self.lock();
 
         match FixedSizeBlockAllocator::list_index(&layout) {
@@ -63,7 +65,10 @@ unsafe impl GlobalAlloc for Locked<FixedSizeBlockAllocator> {
     ///
     /// This function is unsafe because it performs low-level memory deallocation operations.
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        crate::memory::MEMORY.get().unwrap().force_unlock();
+        crate::memory::MEMORY.get().unwrap().lock().takeaway_from_used_mem(layout.size().try_into().unwrap());
         let mut allocator = self.lock();
+
         match FixedSizeBlockAllocator::list_index(&layout) {
             Some(index) => {
                 let new_node = ListNode {

@@ -17,6 +17,7 @@ use crate::other::log::LOGGER;
 use crate::{
     drivers::screen::framebuffer::{Color, FRAMEBUFFER},
     print, println,
+    memory::MEMORY,
 };
 use alloc::vec::Vec;
 
@@ -44,6 +45,7 @@ pub fn handle_console(line: &str) -> bool {
                 "multiply" => multiply_command(args),
                 "divide" => divide_command(args),
                 "power" => power_command(args),
+                "mem" => check_memory(),
                 "color" => change_color(args),
                 "colour" => change_color(args),
                 "echo" => echo(args),
@@ -202,6 +204,21 @@ fn power(base: f64, exponent: f64) -> f64 {
         result *= base;
     }
     result
+}
+
+/// Print memory details
+fn check_memory() {
+    println!("\nMemory Info");
+    println!("Total GB: {}", MEMORY.get().unwrap().lock().total_mem_gigabytes());
+    println!("Total MB: {}", MEMORY.get().unwrap().lock().total_mem_megabytes());
+    println!("Total KB: {}", MEMORY.get().unwrap().lock().total_mem_kilobytes());
+    println!("Total bytes: {}", MEMORY.get().unwrap().lock().total_memory);
+    
+    println!("Used GB: {}", MEMORY.get().unwrap().lock().total_used_mem_gigabytes());
+    println!("Used MB: {}", MEMORY.get().unwrap().lock().total_used_mem_megabytes());
+    println!("Used KB: {}", MEMORY.get().unwrap().lock().total_used_mem_kilobytes());
+    println!("Used bytes: {}", MEMORY.get().unwrap().lock().used_memory);
+    
 }
 
 /// Executes the "color" command.
@@ -363,6 +380,7 @@ fn help_command() {
     println!("multiply <num1> <num2>");
     println!("divide <num1> <num2>");
     println!("power <Base> <Exponent>");
+    println!("mem");
     println!("color <color_name>");
     println!("echo <text>");
     println!("test");

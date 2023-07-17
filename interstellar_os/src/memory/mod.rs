@@ -1,7 +1,8 @@
-use alloc::string::{String, ToString};
 use bootloader_api::info::{MemoryRegion, MemoryRegionKind, MemoryRegions};
+use conquer_once::spin::OnceCell;
 use lazy_static::lazy_static;
 use spin::Mutex;
+use spinning_top::Spinlock;
 use x86_64::{
     structures::paging::{
         page::PageRange, FrameAllocator, Mapper, OffsetPageTable, Page, PageSize, PageTable,
@@ -15,7 +16,7 @@ use os_units::{Bytes, NumOfPages};
 lazy_static! {
     pub static ref MAPPER: Mutex<Option<OffsetPageTable<'static>>> = Mutex::new(None);
     pub static ref FRAME_ALLOCATOR: Mutex<Option<BootInfoFrameAllocator>> = Mutex::new(None);
-    pub static ref MEMORY: Mutex<Option<Memory>> = Mutex::new(None);
+    pub static ref MEMORY: OnceCell<Spinlock<Memory>> = OnceCell::uninit();
 }
 
 /// Initialize the Frame allocator and Mapper
@@ -38,7 +39,9 @@ pub unsafe fn init(physical_memory_offset: u64, memory_regions: &'static mut Mem
         }
     }
 
-    let _ = MEMORY.lock().insert(Memory { total_memory });
+    MEMORY.init_once(|| {
+        Spinlock::new(Memory { total_memory, used_memory: 0 })
+    });
 
     let frame_allocator = unsafe { BootInfoFrameAllocator::init(memory_regions) };
 
@@ -59,31 +62,52 @@ unsafe fn active_level_4_table(physical_memory_offset: u64) -> &'static mut Page
 
 pub struct Memory {
     pub total_memory: u64,
+    pub used_memory: u64,
 }
 
 impl Memory {
-    pub fn total_mem_gigabytes(&self) -> String {
-        let total_mem = self.total_memory;
-        let string = total_mem.to_string();
-        let mut final_str: String = String::new();
-        if string.len() == 10 {
-            let first_digit: char = string.chars().next().take().unwrap();
-            let second_digit: char = string.chars().nth(1).take().unwrap();
-            if second_digit != '0' {
-                final_str = alloc::format!("{}.{}", first_digit, second_digit)
-            } else {
-                final_str = alloc::format!("{}", first_digit)
-            }
-        } else if string.len() == 11 {
-            let first_digit: char = string.chars().next().take().unwrap();
-            let second_digit: char = string.chars().nth(1).take().unwrap();
-            final_str = alloc::format!("{}{}", first_digit, second_digit)
-        } else if string.len() == 9 {
-            let first_digit: char = string.chars().next().take().unwrap();
+    pub fn total_mem_kilobytes(&self) -> f32 {
+        let size_in_bytes = self.total_memory;
+        size_in_bytes as f32 / 1024.0
+    }
 
-            final_str = alloc::format!("0.{}", first_digit)
-        }
-        final_str
+    pub fn total_used_mem_kilobytes(&self) -> f32 {
+        let size_in_bytes = self.used_memory;
+        size_in_bytes as f32 / 1024.0
+    }
+
+    pub fn total_mem_megabytes(&self) -> f32 {
+        let size_in_bytes = self.total_memory;
+        let size_in_kilobytes = size_in_bytes as f32 / 1024.0;
+        size_in_kilobytes / 1024.0
+    }
+
+    pub fn total_used_mem_megabytes(&self) -> f32 {
+        let size_in_bytes = self.used_memory;
+        let size_in_kilobytes = size_in_bytes as f32 / 1024.0;
+        size_in_kilobytes / 1024.0
+    }
+
+    pub fn total_mem_gigabytes(&self) -> f32 {
+        let size_in_bytes = self.total_memory;
+        let size_in_kilobytes = size_in_bytes as f32 / 1024.0;
+        let size_in_megabytes = size_in_kilobytes / 1024.0;
+        size_in_megabytes / 1024.0
+    }
+
+    pub fn total_used_mem_gigabytes(&self) -> f32 {
+        let size_in_bytes = self.used_memory;
+        let size_in_kilobytes = size_in_bytes as f32 / 1024.0;
+        let size_in_megabytes = size_in_kilobytes / 1024.0;
+        size_in_megabytes / 1024.0
+    }
+
+    pub fn add_to_used_mem(&mut self, amount: u64) {
+        self.used_memory += amount;
+    }
+
+    pub fn takeaway_from_used_mem(&mut self, amount: u64) {
+        self.used_memory -= amount;
     }
 }
 
