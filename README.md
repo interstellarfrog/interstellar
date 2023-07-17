@@ -2,10 +2,9 @@
 
 ![Building?](https://img.shields.io/github/actions/workflow/status/interstellarfrog/interstellar_os/rust.yml?logo=github) ![Issue Count](https://img.shields.io/github/issues/interstellarfrog/interstellar_os) ![Top Language Percentage](https://img.shields.io/github/languages/top/interstellarfrog/interstellar_os) ![GitHub All Releases Downloads](https://img.shields.io/github/downloads/interstellarfrog/interstellar_os/total) ![Stars](https://img.shields.io/github/stars/interstellarfrog/interstellar_os) ![License](https://img.shields.io/github/license/interstellarfrog/interstellar_os)
 
-
 This project is an Operating System written fully in Rust for x86 64bit (X86_64) that supports both UEFI and BIOS systems.
 
-### Objectives
+## Objectives
 
 - My current objectives are to implement a user mode with a file system, GUI, and some simple games like noughts and crosses and chess. I also plan to port the Rust compiler and Python.
 
@@ -17,7 +16,7 @@ This project is an Operating System written fully in Rust for x86 64bit (X86_64)
 
 - I do not plan to support other architectures as this would complicate the code significantly.
 
-### Functionality
+## Functionality
 
 While it might not seem like much from within the OS, there's a lot of code being written behind the scenes (At the time of writing 4616 lines just for code).
 
@@ -25,7 +24,7 @@ Currently, it has a PS/2 keyboard and mouse driver for input. Most VMs can trans
 
 Inside the OS, you can see and move your mouse cursor and use the Neutron Shell.
 
-### Hidden Features
+## Hidden Features
 
 These are some hidden features you might be interested in:
 
@@ -38,19 +37,16 @@ These are some hidden features you might be interested in:
 - Initrd generator and parser: This allows loading files into the kernel's memory on initial launch. These can be used for anything from drivers to preference files.
 - Executor: This can be used to execute co-operative tasks in the kernel seemingly at the same time using async code.
 
-### v0.0.1 Running
+## v0.0.1 Running
 
 ![qemu1.png](images/qemu1.jpg)
-
 ![qemu2.png](images/qemu2.png)
 
-
-
-# Running the OS
+## Running the OS
 
 I highly recommend using QEMU as described below, but you can use any of the other available options.
 
-## Real Hardware
+### Real Hardware
 
 To run the OS on real hardware, you need to use the Rufus program for Windows or the `dd` command for Linux (Be careful, these tools can wipe your whole PC) and write the file to a USB.
 
@@ -58,49 +54,50 @@ Then insert the USB into the correct machine (x86_64 UEFI or x86_64 BIOS - you l
 
 If you want mouse/keyboard support, you need to use a PS/2 mouse and keyboard. Alternatively, if your UEFI/BIOS software has a "Legacy USB Support" or "USB Legacy Support" option, you can enable it to translate your USB keyboard and mouse to PS/2. Note that undefined behavior may occur if the OS cannot find the mouse and keyboard.
 
-## QEMU
+### QEMU
 
 The easiest way to run this is the QEMU virtual machine.
 
 QEMU Downloads:
 
-* [Windows-64 Bit](https://qemu.weilnetz.de/w64/)
+- [Windows-64 Bit](https://qemu.weilnetz.de/w64/)
 
-* [Windows-32 Bit](https://qemu.weilnetz.de/w32/)
+- [Windows-32 Bit](https://qemu.weilnetz.de/w32/)
 
-* [Linux](https://www.qemu.org/download/#linux)
+- [Linux](https://www.qemu.org/download/#linux)
 
-* [MacOS](https://www.qemu.org/download/#macos)
+- [MacOS](https://www.qemu.org/download/#macos)
 
 After installing QEMU, I recommend adding it to your environment path variable. Then, run the uefi or bios .img file using QEMU with the correct image name:
 
 `qemu-system-x86_64 -cpu max -drive format=raw,file=interstellar_bios.img`
 
-For using the UEFI .img version QEMU does not support this without us adding custom UEFI firmware which you can download from here: 
-- Get OVMF-pure-efi.fd - [link](https://github.com/rust-osdev/ovmf-prebuilt/releases/tag/v0.20220719.209%2Bgf0064ac3af) 
+For using the UEFI .img version QEMU does not support this without us adding custom UEFI firmware which you can download from here:
+
+- Get OVMF-pure-efi.fd - [link](https://github.com/rust-osdev/ovmf-prebuilt/releases/tag/v0.20220719.209%2Bgf0064ac3af)
 
 Add the file to the same directory as the .img and run this command with the correct image name:
 
 `qemu-system-x86_64 -cpu max -bios OVMF-pure-efi.fd -drive format=raw,file=interstellar_uefi.img`
 
-## Virtual box
+### Virtual box
 
 VirtualBox takes some more setup than QEMU.
 
-1. Launch VirtualBox and make a new empty unknown 64-bit machine.
+- Launch VirtualBox and make a new empty unknown 64-bit machine.
 
 ![create_os_vbox.png](images/create_os_vbox.png)
 
-2. Allocate the desired number of CPUs and a reasonable amount of memory for the machine if you are using the UEFI version set EFI enabled. Then click on "Use an existing virtual hard disk file," add the .VDI file, and select it.
+- Allocate the desired number of CPUs and a reasonable amount of memory for the machine if you are using the UEFI version set EFI enabled. Then click on "Use an existing virtual hard disk file," add the .VDI file, and select it.
 
 ![create_os_vbox2.png](images/create_os_vbox2.png)
 
-3. Then run it!
+- Then run it!
 
 ![vbox1.jpg](images/vbox1.jpg)
 ![vbox2.jpg](images/vbox2.png)
 
-# Manually building
+## Manually building
 
 To manually build, first clone the repository. Ensure you're using the Rust Nightly Compiler with Rustup, and run this command for the bootloader to work:
 
@@ -172,13 +169,34 @@ Available Args:
 
 BIOS tests take a long time to run (as much as 30 seconds each) for some reason, I will look into this eventually but for now only run them when needed.
 
-# Contributing
+## Contributing
+
+By contributing to this project, you agree that your contributions will be licensed under this projects current license and you agree to the terms and conditions in this projects license.
+
+You should also add your name into the copyright header of the file you contribute to or add one if it does not exist for example:
+
+```License
+//Copyright (C) <2023> <Your name>
+//                                       <- add another line here if there is multiple contributers - Copyright (C) <2023> <Your name>
+//This program is free software: you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation, either version 3 of the License, or
+//(at your option) any later version.
+//
+//This program is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+//
+//You should have received a copy of the GNU General Public License
+//along with this program.  If not, see <https://www.gnu.org/licenses/>.
+```
 
 Many things need to be implemented see to_do.txt
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for requirements
 
-# Want to learn how to code your own OS in rust?
+## Want to learn how to code your own OS in rust?
 
 If you're interested in coding your own OS in Rust, check out the following resources:
 
