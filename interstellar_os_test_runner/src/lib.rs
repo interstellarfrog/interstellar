@@ -133,6 +133,7 @@ pub fn test_runner(other_tests: &[&dyn Testable]) {
         let total_os_tests = os_tests.len();
         let mut succeeded_os_tests = 0;
         let mut failed_os_tests = 0;
+        let mut failed_os_tests_names: Vec<String> = vec![];
 
         println!("Using UEFI");
         println!("Running {} OS test/s...", total_os_tests);
@@ -141,7 +142,11 @@ pub fn test_runner(other_tests: &[&dyn Testable]) {
             let disk = build_test_disk(&target_dir, &tests_dir.join(test), true);
             match run_in_qemu(&disk, true) {
                 Ok(_) => succeeded_os_tests += 1,
-                Err(_) => failed_os_tests += 1,
+                Err(_) => {
+                    failed_os_tests += 1;
+                    failed_os_tests_names.append(&mut vec![String::from(test.to_str().unwrap())]);
+                
+                },
             }
         }
 
@@ -155,7 +160,10 @@ pub fn test_runner(other_tests: &[&dyn Testable]) {
         clean(); // Clean tests
 
         if failed_os_tests > 0 {
-            panic!("Some test/s failed, exiting");
+            for name in failed_os_tests_names {
+                println!("{} Failed", name);
+            }
+            panic!("Error: Some Tests Failed!");
         }
     }
 
@@ -304,10 +312,8 @@ fn run_in_qemu(disk_path: &Path, uefi: bool) -> Result<(), ()> {
         .arg("--no-reboot")
         .arg("-drive")
         .arg(format!("format=raw,file={}", disk_path.display()))
-        .arg("-device")
-        .arg("virtio-mouse") // Emulate Mouse
-        .arg("-device")
-        .arg("virtio-keyboard") // Emulate Keyboard
+        .arg("-boot")
+        .arg("order=c")
         .arg("-cpu")
         .arg("max") // Enables all features supported by the accelerator in the current host; Needed for RDSEED
         .stdout(Stdio::piped())

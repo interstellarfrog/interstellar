@@ -1,3 +1,6 @@
+add more tests
+fix QEMU UEFI booting from clearing the console causing the tests in the testing framework not show right
+Port a doom engine - not that hard using doom generic
 make function to power of machine using ACPI
 configure APIC timer and PIT
 make measurable time frames for benchmarking and sleep(seconds: 0.5)
