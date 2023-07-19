@@ -224,7 +224,7 @@ impl FrameBufferWriter {
 
     /// Prints a rendered char into the framebuffer.
     /// Updates `self.x_pos`.
-    fn write_rendered_char(&mut self, rendered_char: RasterizedChar, color: &mut [u8; 4]) {
+    fn write_rendered_char(&mut self, rendered_char: RasterizedChar, color: &[u8; 4]) {
         for (y, row) in rendered_char.raster().iter().enumerate() {
             for (x, byte) in row.iter().enumerate() {
                 let intensity = *byte as f32 / 255.0;
