@@ -201,7 +201,7 @@ impl FrameBufferWriter {
 
     /// Writes a single char to the framebuffer. Takes care of special control characters, such as
     /// newlines and carriage returns.
-    pub fn write_char(&mut self, c: char, color: &mut [u8; 4]) {
+    pub fn write_char(&mut self, c: char, color: &[u8; 4]) {
         match c {
             '\n' => self.newline(),
             '\r' => self.carriage_return(),
