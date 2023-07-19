@@ -529,7 +529,7 @@ unsafe impl Sync for FrameBufferWriter {}
 impl fmt::Write for FrameBufferWriter {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for c in s.chars() {
-            self.write_char(c, &mut Color::to_pixel(&self.text_col, self.info));
+            self.write_char(c, &Color::to_pixel(&self.text_col, self.info));
         }
         Ok(())
     }
