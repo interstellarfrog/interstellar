@@ -149,7 +149,7 @@ NOTE:
 
 You may have to manually close both terminals after running with GDB to force the programs to close as sometimes QEMU stays open when connected to GDB
 
-Also when setting breakpoints UEFI uses ASLR so the addresses randomize every boot
+Also when setting address breakpoints interstellar uses ASLR so the addresses randomize every boot
 
 ![GDB1.png](images/GDB1.png)
 ![GDB2.png](images/GDB2.png)
