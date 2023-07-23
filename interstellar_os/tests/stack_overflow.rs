@@ -136,6 +136,5 @@ pub fn init_test_idt() {
 #[allow(unconditional_recursion)]
 fn stack_overflow() {
     stack_overflow();
-    let mut i = 0;
-    volatile::Volatile::new(&mut i).read(); // Stops The Recursion From Being Optimized
+    unsafe { volatile::VolatilePtr::new((&mut 0x0).into()) }; // Stops The Recursion From potentially Being Optimized
 }
