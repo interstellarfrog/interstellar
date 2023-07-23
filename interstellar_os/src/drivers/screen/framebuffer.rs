@@ -16,13 +16,13 @@
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 use conquer_once::spin::OnceCell;
 use core::fmt;
-use core::ptr;
 use font_constants::BACKUP_CHAR;
 use noto_sans_mono_bitmap::{
     get_raster, get_raster_width, FontWeight, RasterHeight, RasterizedChar,
 };
 use spinning_top::Spinlock;
 
+#[derive(Clone, Copy)]
 pub enum Color {
     Red,
     Green,
@@ -44,7 +44,7 @@ pub enum Color {
 
 impl Color {
     /// Converts the Color enum variant to a pixel format array.
-    pub fn to_pixel(color: &Color, buffer_info: FrameBufferInfo) -> [u8; 4] {
+    pub fn to_pixel(color: Color, buffer_info: FrameBufferInfo) -> [u8; 4] {
         match color {
             // Both The Same For RGB/BGR
             Color::Black => [0, 0, 0, 0],
@@ -142,6 +142,7 @@ pub struct FrameBufferWriter {
     x_pos: usize,
     y_pos: usize,
     text_col: Color,
+    background_col: Color,
 }
 
 impl FrameBufferWriter {
@@ -153,6 +154,7 @@ impl FrameBufferWriter {
             x_pos: 0,
             y_pos: 0,
             text_col: Color::White,
+            background_col: Color::Black,
         };
         logger.clear();
         logger
@@ -172,7 +174,23 @@ impl FrameBufferWriter {
     pub fn clear(&mut self) {
         self.x_pos = BORDER_PADDING;
         self.y_pos = BORDER_PADDING;
-        self.framebuffer.fill(0);
+        //self.framebuffer.fill(0);
+
+        let color = Color::to_pixel(self.background_col, self.buffer_info());
+        //let mut col_index = 0;
+
+        //for i in 0..self.framebuffer.len() {
+        //    self.framebuffer[i] = color[col_index];
+        //    if col_index == 3 {
+        //        col_index = 0;
+        //    }
+        //}
+
+        for x in 0..self.info.width {
+            for y in 0..self.info.height {
+                self.write_pixel(x, y, color)
+            }
+        }
     }
 
     /// Returns the width of the framebuffer.
@@ -217,27 +235,39 @@ impl FrameBufferWriter {
                     // Shift lines up by 1
                     self.clear();
                 }
-                self.write_rendered_char(get_char_raster(c), color);
+
+                let low_intensity_color = &Color::to_pixel(self.background_col, self.buffer_info());
+
+                self.write_rendered_char(get_char_raster(c), color, low_intensity_color);
             }
         }
     }
 
     /// Prints a rendered char into the framebuffer.
     /// Updates `self.x_pos`.
-    fn write_rendered_char(&mut self, rendered_char: RasterizedChar, color: &[u8; 4]) {
+    fn write_rendered_char(
+        &mut self, 
+        rendered_char: RasterizedChar, 
+        color: &[u8; 4], 
+        low_intensity_color: &[u8; 4]) {
+        
+        fn lerp(a: u8, b: u8, t: f32) -> u8 {
+            ((1.0 - t) * a as f32 + t * b as f32) as u8
+        }
+    
         for (y, row) in rendered_char.raster().iter().enumerate() {
             for (x, byte) in row.iter().enumerate() {
                 let intensity = *byte as f32 / 255.0;
                 let pixel_color = [
-                    (color[0] as f32 * intensity) as u8,
-                    (color[1] as f32 * intensity) as u8,
-                    (color[2] as f32 * intensity) as u8,
+                    lerp(color[0], low_intensity_color[0], 1.0 - intensity),
+                    lerp(color[1], low_intensity_color[1], 1.0 - intensity),
+                    lerp(color[2], low_intensity_color[2], 1.0 - intensity),
                     color[3],
                 ];
                 self.write_pixel(self.x_pos + x, self.y_pos + y, pixel_color);
             }
         }
-
+    
         self.x_pos += rendered_char.width() + LETTER_SPACING;
     }
 
@@ -259,7 +289,7 @@ impl FrameBufferWriter {
         }
 
         // Clear the area of the deleted character
-        let delete_color = Color::to_pixel(&Color::Black, self.info);
+        let delete_color = Color::to_pixel(self.background_col, self.info);
         self.draw_filled_rect(
             self.x_pos,
             self.y_pos,
@@ -275,15 +305,13 @@ impl FrameBufferWriter {
             return;
         }
 
-        // row * row size + column
         let pixel_offset = y * self.info.stride + x;
         let bytes_per_pixel = self.info.bytes_per_pixel;
         let byte_offset = pixel_offset * bytes_per_pixel;
         // Write Pixel To Framebuffer
         self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
             .copy_from_slice(&color[..bytes_per_pixel]);
-        // Read The Pixel For Some Reason
-        let _ = unsafe { ptr::read_volatile(&self.framebuffer[byte_offset]) };
+
     }
 
     /// Reads the color of a pixel at the specified coordinates.
@@ -328,10 +356,6 @@ impl FrameBufferWriter {
             self.framebuffer[bottom_byte_offset..(bottom_byte_offset + bytes_per_pixel)]
                 .copy_from_slice(&color[..bytes_per_pixel]);
 
-            unsafe {
-                ptr::read_volatile(&self.framebuffer[top_byte_offset]);
-                ptr::read_volatile(&self.framebuffer[bottom_byte_offset]);
-            };
         }
 
         // Draw left and right edges
@@ -347,10 +371,6 @@ impl FrameBufferWriter {
             self.framebuffer[right_byte_offset..(right_byte_offset + bytes_per_pixel)]
                 .copy_from_slice(&color[..bytes_per_pixel]);
 
-            unsafe {
-                ptr::read_volatile(&self.framebuffer[left_byte_offset]);
-                ptr::read_volatile(&self.framebuffer[right_byte_offset]);
-            };
         }
     }
 
@@ -375,9 +395,6 @@ impl FrameBufferWriter {
                 let byte_offset: usize = pixel_offset * bytes_per_pixel;
                 self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
                     .copy_from_slice(&color[..bytes_per_pixel]);
-                unsafe {
-                    ptr::read_volatile(&self.framebuffer[byte_offset]);
-                };
             }
         }
     }
@@ -520,6 +537,10 @@ impl FrameBufferWriter {
     pub fn change_text_color(&mut self, col: Color) {
         self.text_col = col;
     }
+
+    pub fn change_background_color(&mut self, col: Color) {
+        self.background_col = col;
+    }
 }
 
 // Allows The Framebuffer To Be Used Between Threads
@@ -529,7 +550,7 @@ unsafe impl Sync for FrameBufferWriter {}
 impl fmt::Write for FrameBufferWriter {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for c in s.chars() {
-            self.write_char(c, &Color::to_pixel(&self.text_col, self.info));
+            self.write_char(c, &Color::to_pixel(self.text_col, self.info));
         }
         Ok(())
     }

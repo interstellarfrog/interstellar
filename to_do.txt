@@ -1,3 +1,4 @@
+add double buffering - write to one memory addr then switch with main framebuffer (so it does not show the pixels half way through writing to the addr)
 add more tests
 fix QEMU UEFI booting from clearing the console causing the tests in the testing framework not show right
 Port a doom engine - not that hard using doom generic

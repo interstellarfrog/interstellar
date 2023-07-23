@@ -165,13 +165,13 @@ impl Mouse {
                 FRAMEBUFFER.get().unwrap().lock().write_pixel(
                     temp_x,
                     temp_y,
-                    Color::to_pixel(&Color::Black, buffer_info),
+                    Color::to_pixel(Color::Black, buffer_info),
                 );
             } else if pix == 2 {
                 FRAMEBUFFER.get().unwrap().lock().write_pixel(
                     temp_x,
                     temp_y,
-                    Color::to_pixel(&Color::White, buffer_info),
+                    Color::to_pixel(Color::White, buffer_info),
                 );
             }
         }

@@ -47,6 +47,7 @@ pub fn handle_console(line: &str) -> bool {
                 "power" => power_command(args),
                 "mem" => check_memory(),
                 "color" => change_color(args),
+                "bgcolor" => change_background_color(args),
                 "colour" => change_color(args),
                 "echo" => echo(args),
                 "help" => help_command(),
@@ -358,6 +359,143 @@ fn change_color(args: &[&str]) {
     }
 }
 
+/// Executes the "color" command.
+///
+/// # Arguments
+///
+/// * `args` - The arguments passed to the command.
+fn change_background_color(args: &[&str]) {
+    if args.is_empty() || args.len() != 1 {
+        println!(
+            "\nInvalid Arguments. Example Usage: bgcolor <red>   - Tip Use bgcolor help or bgcolor /?"
+        );
+    } else {
+        let arg = args[0];
+
+        if arg == "/?" || arg == "help" {
+            println!(
+                "\nExample Usage: bgcolor <red>\n\nAvailable Colors:\n
+            black,
+            blue,
+            green,
+            cyan,
+            red,
+            magenta,
+            brown,
+            lightgray,
+            darkgray,
+            lightblue,
+            lightgreen,
+            lightcyan,
+            lightred,
+            pink,
+            yellow,
+            white"
+            );
+            return;
+        }
+        if arg == "black" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::Black);
+        } else if arg == "blue" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::Blue);
+        } else if arg == "green" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::Green);
+        } else if arg == "cyan" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::Cyan);
+        } else if arg == "red" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::Red);
+        } else if arg == "magenta" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::Magenta);
+        } else if arg == "brown" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::Brown);
+        } else if arg == "lightgray" || arg == "lightgrey" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::LightGray);
+        } else if arg == "darkgray" || arg == "darkgrey" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::DarkGray);
+        } else if arg == "lightblue" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::LightBlue);
+        } else if arg == "lightgreen" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::LightGreen);
+        } else if arg == "lightcyan" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::LightCyan);
+        } else if arg == "lightred" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::LightRed);
+        } else if arg == "pink" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::Pink);
+        } else if arg == "yellow" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::Yellow);
+        } else if arg == "white" {
+            FRAMEBUFFER
+                .get()
+                .unwrap()
+                .lock()
+                .change_background_color(Color::White);
+        } else {
+            println!("\nInvalid Color: {}  - Tip Use bgcolor help or bgcolor /?", arg);
+        }
+    }
+}
+
 /// Executes the "echo" command.
 ///
 /// # Arguments
@@ -382,6 +520,7 @@ fn help_command() {
     println!("power <Base> <Exponent>");
     println!("mem");
     println!("color <color_name>");
+    println!("bgcolor <color_name>");
     println!("echo <text>");
     println!("test");
     println!("clear");
