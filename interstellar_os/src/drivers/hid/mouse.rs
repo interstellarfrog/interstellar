@@ -200,23 +200,35 @@ impl Mouse {
     /// Set the current position of the mouse based on the state.
     fn set_pos(&self) {
         let state = self.state.load().expect("mouse state not initialized");
-        let dx = state.get_x();
-        let dy = state.get_y();
+        let x = state.get_x();
+        let y = state.get_y();
 
         // Update the x-coordinate of the mouse position
-        if dx > 0 {
-            self.x.fetch_add(dx as usize, Ordering::Relaxed);
+        if x > 0 {
+            // Moving right
+            self.x.fetch_add(x as usize, Ordering::Relaxed);
         } else {
-            self.x
-                .fetch_sub(dx.unsigned_abs() as usize, Ordering::Relaxed);
+            // Moving left
+
+            if (x.unsigned_abs() as usize) < self.x.load(Ordering::Relaxed) {
+                self.x.fetch_sub(x.unsigned_abs() as usize, Ordering::Relaxed);
+            } else {
+                self.x.store(0, Ordering::Relaxed);
+            }
+            
         }
 
         // Update the y-coordinate of the mouse position
-        if dy > 0 {
-            self.y.fetch_sub(dy as usize, Ordering::Relaxed);
+        if y > 0 {
+            if self.y.load(Ordering::Relaxed).checked_sub(y as usize).is_some() {
+                self.y.fetch_sub(y as usize, Ordering::Relaxed);
+            } else {
+                self.y.store(0, Ordering::Relaxed);
+            }
+            
         } else {
             self.y
-                .fetch_add(dy.unsigned_abs() as usize, Ordering::Relaxed);
+                .fetch_add(y.unsigned_abs() as usize, Ordering::Relaxed);
         }
 
         // Limit the mouse position to the screen boundaries
