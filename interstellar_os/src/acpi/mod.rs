@@ -173,7 +173,8 @@ impl aml::Handler for OsAmlHandler {
                     .physical_memory_offset
                     .unwrap() as usize) as *const u8)
         };
-        let mut volatile_addr = volatile::Volatile::new(&mut addr);
+        
+        let volatile_addr = unsafe { volatile::VolatilePtr::new((&mut addr).into()) };
         volatile_addr.write(value);
     }
 
@@ -187,7 +188,7 @@ impl aml::Handler for OsAmlHandler {
                     .physical_memory_offset
                     .unwrap() as usize) as *const u16)
         };
-        let mut volatile_addr = volatile::Volatile::new(&mut addr);
+        let volatile_addr = unsafe { volatile::VolatilePtr::new((&mut addr).into()) };
         volatile_addr.write(value);
     }
 
@@ -201,7 +202,7 @@ impl aml::Handler for OsAmlHandler {
                     .physical_memory_offset
                     .unwrap() as usize) as *const u32)
         };
-        let mut volatile_addr = volatile::Volatile::new(&mut addr);
+        let volatile_addr = unsafe { volatile::VolatilePtr::new((&mut addr).into()) };
         volatile_addr.write(value);
     }
 
@@ -215,7 +216,7 @@ impl aml::Handler for OsAmlHandler {
                     .physical_memory_offset
                     .unwrap() as usize) as *const u64)
         };
-        let mut volatile_addr = volatile::Volatile::new(&mut addr);
+        let volatile_addr = unsafe { volatile::VolatilePtr::new((&mut addr).into()) };
         volatile_addr.write(value);
     }
 

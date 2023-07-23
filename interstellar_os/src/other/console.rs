@@ -90,7 +90,7 @@ pub fn handle_console(line: &str) -> bool {
 #[allow(unconditional_recursion)]
 fn stack_overflow() {
     stack_overflow();
-    volatile::Volatile::new(0); // Stops The Recursion From Being Optimized
+    unsafe { volatile::VolatilePtr::new((&mut 0x0).into()) }; // Stops The Recursion From Being Optimized
 }
 
 /// Executes the "hello" command.
