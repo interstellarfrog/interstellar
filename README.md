@@ -1,6 +1,6 @@
 # interstellar OS
 
-![Building?](https://img.shields.io/github/actions/workflow/status/interstellarfrog/interstellar/rust.yml?logo=github) ![Issue Count](https://img.shields.io/github/issues/interstellarfrog/interstellar) ![Top Language Percentage](https://img.shields.io/github/languages/top/interstellarfrog/interstellar) ![GitHub All Releases Downloads](https://img.shields.io/github/downloads/interstellarfrog/interstellar/total) ![Stars](https://img.shields.io/github/stars/interstellarfrog/interstellar) ![License](https://img.shields.io/github/license/interstellarfrog/interstellar)
+![Building?](https://img.shields.io/github/actions/workflow/status/interstellarfrog/interstellar/rust.yml?logo=github) ![Issue Count](https://img.shields.io/github/issues/interstellarfrog/interstellar) ![Top Language Percentage](https://img.shields.io/github/languages/top/interstellarfrog/interstellar) ![Lines of Rust Code](https://img.shields.io/badge/Lines_of_Rust_Code-5134-yellow) ![GitHub All Releases Downloads](https://img.shields.io/github/downloads/interstellarfrog/interstellar/total) ![Stars](https://img.shields.io/github/stars/interstellarfrog/interstellar) ![License](https://img.shields.io/github/license/interstellarfrog/interstellar)
 
 This project is an Operating System written fully in Rust for x86 64bit (X86_64) that supports both UEFI and BIOS systems.
 
