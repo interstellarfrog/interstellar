@@ -20,6 +20,7 @@ use alloc::borrow::ToOwned;
 use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
+use alloc::vec;
 use alloc::vec::Vec;
 use conquer_once::spin::OnceCell;
 use futures_util::stream::StreamExt;
@@ -55,7 +56,6 @@ pub fn _print(args: core::fmt::Arguments) {
     // We need to add lines to CONSOLE_INFO
     // So we can make the console scrollable
 
-
     // Possible problem values we need to handle
     //
     // \n
@@ -69,11 +69,12 @@ pub fn _print(args: core::fmt::Arguments) {
 
     let mut lines = alloc::format!("{}", args.clone());
     let buffer_width = FRAMEBUFFER.get().unwrap().lock().info.width;
-    let char_width = crate::drivers::screen::framebuffer::font_constants::CHAR_RASTER_WIDTH + crate::drivers::screen::framebuffer::LETTER_SPACING;
-    let max_chars_in_line = buffer_width /  char_width;
+    let char_width = crate::drivers::screen::framebuffer::font_constants::CHAR_RASTER_WIDTH
+        + crate::drivers::screen::framebuffer::LETTER_SPACING;
+    let max_chars_in_line = buffer_width / char_width;
 
     let binding = lines.clone();
-    let chars_with_new_lines = binding.chars().enumerate().map(|(i,c)| {
+    let chars_with_new_lines = binding.chars().enumerate().map(|(i, c)| {
         if i % max_chars_in_line == 0 && i != lines.len() - 1 {
             format!("{}\n", c)
         } else {
@@ -83,11 +84,13 @@ pub fn _print(args: core::fmt::Arguments) {
 
     lines = chars_with_new_lines.collect::<String>();
 
-
-
     if lines.as_str() == "\n" {
         CONSOLE_INFO.get().unwrap().lock().add_new_line();
-        CONSOLE_INFO.get().unwrap().lock().add_to_current_line("".to_string());
+        CONSOLE_INFO
+            .get()
+            .unwrap()
+            .lock()
+            .add_to_current_line("".to_string());
 
         interrupts::without_interrupts(|| {
             if let Some(fb) = FRAMEBUFFER.get() {
@@ -114,19 +117,21 @@ pub fn _print(args: core::fmt::Arguments) {
     }
 
     for (i, c) in lines.chars().enumerate() {
-
         // Generates a list that contains the "new line" number at which a double new line occurs and the amount new lines it finds
         if c == '\n'
             && last_char_new_line
             && new_line_double_count < 100 // Should never need more than 100 new lines in a row 
-            && new_line_count < u64::MAX // should never need more than 18446744073709551615 new lines in a console input or output
+            && new_line_count < u64::MAX
+        // should never need more than 18446744073709551615 new lines in a console input or output
         {
             new_line_count += 1;
             new_line_double_count += 1;
-            if lines.ends_with('\n') && i == lines.clone().trim_end_matches('\n').chars().count() + 1 {
+            if lines.ends_with('\n')
+                && i == lines.clone().trim_end_matches('\n').chars().count() + 1
+            {
                 last_line_single = false;
             }
-            
+
             if lines.starts_with('\n') && i == 1 {
                 first_line_single = false;
             }
@@ -175,9 +180,9 @@ pub fn _print(args: core::fmt::Arguments) {
                         .unwrap()
                         .lock()
                         .add_to_current_line("".to_string());
-                    
                 }
-                if number_of_double_new_lines as usize + 1 == lines.chars().count() { // If there is the same amount of new lines as the whole string
+                if number_of_double_new_lines as usize + 1 == lines.chars().count() {
+                    // If there is the same amount of new lines as the whole string
                     interrupts::without_interrupts(|| {
                         if let Some(fb) = FRAMEBUFFER.get() {
                             fb.lock().write_fmt(args).unwrap()
@@ -192,12 +197,12 @@ pub fn _print(args: core::fmt::Arguments) {
         // Check if we should add the last line to current line or create a new line for it
         if lines.as_str().ends_with('\n') {
             number_of_new_line_on_end += 1;
-            
+
             if !new_line_double_list.is_empty() && !last_line_single {
-                let (_, number_of_double_new_lines) = new_line_double_list.clone()[new_line_double_list.len() - 1];
+                let (_, number_of_double_new_lines) =
+                    new_line_double_list.clone()[new_line_double_list.len() - 1];
                 number_of_new_line_on_end += number_of_double_new_lines;
             }
-
         }
 
         if lines
@@ -254,12 +259,28 @@ pub fn _print(args: core::fmt::Arguments) {
             for (count, line) in lines
                 .trim_end_matches('\n')
                 .trim_start_matches('\n')
-                .split('\n').enumerate()
-            {   
-                CONSOLE_INFO.get().unwrap().lock().add_to_current_line(line.to_string());
-                if count + 1 != lines.trim_end_matches('\n').trim_start_matches('\n').split('\n').count() { // If its not the last line in the list
+                .split('\n')
+                .enumerate()
+            {
+                CONSOLE_INFO
+                    .get()
+                    .unwrap()
+                    .lock()
+                    .add_to_current_line(line.to_string());
+                if count + 1
+                    != lines
+                        .trim_end_matches('\n')
+                        .trim_start_matches('\n')
+                        .split('\n')
+                        .count()
+                {
+                    // If its not the last line in the list
                     CONSOLE_INFO.get().unwrap().lock().add_new_line();
-                    CONSOLE_INFO.get().unwrap().lock().add_to_current_line("".to_string());
+                    CONSOLE_INFO
+                        .get()
+                        .unwrap()
+                        .lock()
+                        .add_to_current_line("".to_string());
                 }
             }
 
@@ -271,7 +292,6 @@ pub fn _print(args: core::fmt::Arguments) {
                         .unwrap()
                         .lock()
                         .add_to_current_line("".to_string());
-                    
                 }
             } else if last_line_single {
                 CONSOLE_INFO.get().unwrap().lock().add_new_line();
@@ -282,11 +302,12 @@ pub fn _print(args: core::fmt::Arguments) {
                     .add_to_current_line("".to_string());
             }
         } else {
-            CONSOLE_INFO
-                .get()
-                .unwrap()
-                .lock()
-                .add_to_current_line(lines.trim_end_matches('\n').trim_start_matches('\n').to_string());
+            CONSOLE_INFO.get().unwrap().lock().add_to_current_line(
+                lines
+                    .trim_end_matches('\n')
+                    .trim_start_matches('\n')
+                    .to_string(),
+            );
 
             if !last_line_single {
                 for _ in 1..=number_of_new_line_on_end {
@@ -296,7 +317,6 @@ pub fn _print(args: core::fmt::Arguments) {
                         .unwrap()
                         .lock()
                         .add_to_current_line("".to_string());
-                    
                 }
             } else if last_line_single {
                 CONSOLE_INFO.get().unwrap().lock().add_new_line();
@@ -306,7 +326,6 @@ pub fn _print(args: core::fmt::Arguments) {
                     .lock()
                     .add_to_current_line("".to_string());
             }
-            
         }
     } else {
         // no \n found - this means we do not create a new line for the next iteration, we add to this line
@@ -324,14 +343,24 @@ pub fn _print(args: core::fmt::Arguments) {
     });
 }
 
+pub fn init() {
+    CONSOLE_INFO.init_once(|| {
+        let console_lines: Vec<String> = vec![];
+
+        spinning_top::Spinlock::new(ConsoleInfo {
+            console_lines,
+            max_lines: 400,
+            current_line_index: 0,
+        })
+    });
+}
+
 /// Provides info about the console
 pub static CONSOLE_INFO: OnceCell<Spinlock<ConsoleInfo>> = OnceCell::uninit();
 
 pub struct ConsoleInfo {
     /// The lines of each input
     pub console_lines: Vec<String>,
-    /// This is used as a temp line
-    pub temp_line: String,
     /// The max number of lines the console_lines can hold before removing past lines
     pub max_lines: u64,
     /// Current line index for console lines
@@ -373,7 +402,6 @@ impl ConsoleInfo {
             self.console_lines[0].pop();
             self.current_line_index = (self.max_lines - 1) as usize;
         }
-        
     }
 
     /// Adds to the current line using the current_line_index
@@ -408,7 +436,6 @@ pub async fn console_start() {
 
     while let Some(scancode) = scancode_stream.next().await {
         if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
-            
             if key_event == KeyEvent::new(KeyCode::Return, pc_keyboard::KeyState::Down) {
                 // If not showing the bottom line jump down to it
 
@@ -424,9 +451,13 @@ pub async fn console_start() {
                 if !input_buffer.is_empty() {
                     if !CONSOLE_INFO.get().unwrap().lock().console_lines.is_empty() {
                         let current_index = CONSOLE_INFO.get().unwrap().lock().current_line_index;
-                        let line_len = CONSOLE_INFO.get().unwrap().lock().console_lines[current_index].chars().count();
-                        CONSOLE_INFO.get().unwrap().lock().console_lines[current_index].remove(line_len - 1);
-                    } 
+                        let line_len = CONSOLE_INFO.get().unwrap().lock().console_lines
+                            [current_index]
+                            .chars()
+                            .count();
+                        CONSOLE_INFO.get().unwrap().lock().console_lines[current_index]
+                            .remove(line_len - 1);
+                    }
 
                     FRAMEBUFFER.get().unwrap().lock().delete_char();
                     input_buffer.pop();

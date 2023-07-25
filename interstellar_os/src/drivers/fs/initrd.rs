@@ -61,7 +61,7 @@ pub unsafe fn init(ramdisk_mem: *const u8, ramdisk_len: u64) {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Initializing initrd"), file!(), line!());
+        .trace("Initializing initrd", file!(), line!());
 
     LOGGER.get().unwrap().lock().info("Initializing initrd");
 

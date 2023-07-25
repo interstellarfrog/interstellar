@@ -30,7 +30,6 @@ use lib::other::log::{
 use lib::{exit_qemu, serial_print, QemuExitCode};
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
-#[cfg(feature = "UEFI")]
 pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     use bootloader_api::config::*;
 
@@ -41,26 +40,6 @@ pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     mappings.physical_memory = Some(Mapping::Dynamic);
     mappings.page_table_recursive = None;
     mappings.aslr = true;
-    mappings.dynamic_range_start = Some(0xFFFF_8000_0000_0000);
-    mappings.dynamic_range_end = Some(0xFFFF_FFFF_FFFF_FFFF);
-
-    let mut config = BootloaderConfig::new_default();
-    config.mappings = mappings;
-    config.kernel_stack_size = 80 * 1024 * 128;
-    config
-};
-
-#[cfg(not(feature = "UEFI"))]
-pub static BOOTLOADER_CONFIG: BootloaderConfig = {
-    use bootloader_api::config::*;
-
-    let mut mappings = Mappings::new_default();
-    mappings.kernel_stack = Mapping::Dynamic;
-    mappings.boot_info = Mapping::Dynamic;
-    mappings.framebuffer = Mapping::Dynamic;
-    mappings.physical_memory = Some(Mapping::Dynamic);
-    mappings.page_table_recursive = None;
-    mappings.aslr = false;
     mappings.dynamic_range_start = Some(0xFFFF_8000_0000_0000);
     mappings.dynamic_range_end = Some(0xFFFF_FFFF_FFFF_FFFF);
 
@@ -98,7 +77,7 @@ fn double_fault(_boot_info: &'static mut BootInfo) -> ! {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Initialized logger"), file!(), line!());
+        .trace("Initialized logger", file!(), line!());
 
     lib::gdt::init();
 

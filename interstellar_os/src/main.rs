@@ -66,7 +66,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Getting startup info"), file!(), line!());
+        .trace("Getting startup info", file!(), line!());
 
     let buffer_info = FRAMEBUFFER.get().as_mut().unwrap().lock().buffer_info();
     let number_of_files = number_of_files().unwrap_or(0);
@@ -111,7 +111,7 @@ fn kernel_main(boot_info: &'static mut BootInfo) -> ! {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Creating Task Executor"), file!(), line!());
+        .trace("Creating Task Executor", file!(), line!());
 
     let spawner = Spawner::new(100);
 

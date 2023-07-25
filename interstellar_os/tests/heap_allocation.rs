@@ -29,7 +29,6 @@ use lib::serial_print;
 
 extern crate alloc;
 
-#[cfg(feature = "UEFI")]
 pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     use bootloader_api::config::*;
 
@@ -40,26 +39,6 @@ pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     mappings.physical_memory = Some(Mapping::Dynamic);
     mappings.page_table_recursive = None;
     mappings.aslr = true;
-    mappings.dynamic_range_start = Some(0xFFFF_8000_0000_0000);
-    mappings.dynamic_range_end = Some(0xFFFF_FFFF_FFFF_FFFF);
-
-    let mut config = BootloaderConfig::new_default();
-    config.mappings = mappings;
-    config.kernel_stack_size = 80 * 1024 * 128;
-    config
-};
-
-#[cfg(not(feature = "UEFI"))]
-pub static BOOTLOADER_CONFIG: BootloaderConfig = {
-    use bootloader_api::config::*;
-
-    let mut mappings = Mappings::new_default();
-    mappings.kernel_stack = Mapping::Dynamic;
-    mappings.boot_info = Mapping::Dynamic;
-    mappings.framebuffer = Mapping::Dynamic;
-    mappings.physical_memory = Some(Mapping::Dynamic);
-    mappings.page_table_recursive = None;
-    mappings.aslr = false;
     mappings.dynamic_range_start = Some(0xFFFF_8000_0000_0000);
     mappings.dynamic_range_end = Some(0xFFFF_FFFF_FFFF_FFFF);
 
@@ -92,7 +71,7 @@ fn simple_allocation() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Running simple allocation test"), file!(), line!());
+        .trace("Running simple allocation test", file!(), line!());
     let heap_value_1 = Box::new(41);
     let heap_value_2 = Box::new(13);
     assert_eq!(*heap_value_1, 41);
@@ -105,7 +84,7 @@ fn large_vec() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Running large vec allocation test"), file!(), line!());
+        .trace("Running large vec allocation test", file!(), line!());
     let n = 1000;
     let mut vec = Vec::new();
     for i in 0..n {
@@ -116,11 +95,11 @@ fn large_vec() {
 
 #[test_case]
 fn many_boxes() {
-    LOGGER.get().unwrap().lock().trace(
-        Some("Running many boxes allocation test"),
-        file!(),
-        line!(),
-    );
+    LOGGER
+        .get()
+        .unwrap()
+        .lock()
+        .trace("Running many boxes allocation test", file!(), line!());
     for i in 0..100000 {
         let x = Box::new(i);
         assert_eq!(*x, i);
@@ -130,7 +109,7 @@ fn many_boxes() {
 #[test_case]
 fn many_boxes_long_lived() {
     LOGGER.get().unwrap().lock().trace(
-        Some("Running many long lived boxes allocation test"),
+        "Running many long lived boxes allocation test",
         file!(),
         line!(),
     );

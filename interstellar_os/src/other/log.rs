@@ -1,7 +1,43 @@
+//Copyright (C) <2023>  <interstellarfrog>
+//
+//This program is free software: you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation, either version 3 of the License, or
+//(at your option) any later version.
+//
+//This program is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+//
+//You should have received a copy of the GNU General Public License
+//along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use crate::println;
 use crate::serial_println;
 use conquer_once::spin::OnceCell;
 use spinning_top::Spinlock;
+
+pub fn init(screen_printing: bool, serial_printing: bool, log_level: LogLevel, tracing: bool) {
+    LOGGER.init_once(|| {
+        Spinlock::new(Logger {
+            screen_printing,
+            serial_printing,
+            tracing,
+            log_level,
+        })
+    });
+
+    BACKTRACE.init_once(|| spinning_top::Spinlock::new([None; MAX_BACKTRACE_ENTRIES]));
+
+    BACKTRACE_INDEX.init_once(|| spinning_top::Spinlock::new(0));
+
+    LOGGER
+        .get()
+        .unwrap()
+        .lock()
+        .trace("Initialized logger", file!(), line!());
+}
 
 /// Max backtrace entries in the [BACKTRACE] list
 pub const MAX_BACKTRACE_ENTRIES: usize = 7;
@@ -151,9 +187,9 @@ impl Logger {
     /// Used to add a trace to the [BACKTRACE] list
     ///
     /// The list is managed automatically the list size can be set through [MAX_BACKTRACE_ENTRIES]
-    pub fn trace(&self, message: Option<&str>, file: &'static str, line: u32) {
+    pub fn trace(&self, message: &str, file: &'static str, line: u32) {
         if self.tracing {
-            let bte = BacktraceEntry::new(message, file, line);
+            let bte = BacktraceEntry::new(Some(message), file, line);
             let mut backtrace = BACKTRACE
                 .get()
                 .expect("Could not get backtrace list")

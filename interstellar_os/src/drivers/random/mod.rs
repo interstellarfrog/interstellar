@@ -148,7 +148,7 @@ fn rdseed() -> Option<u128> {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Generating Random Seed"), file!(), line!());
+        .trace("Generating Random Seed", file!(), line!());
     if !check_random_support() {
         // Maybe change this to just check once and save to variable instead of calling again
         LOGGER.get().unwrap().lock().warn(
@@ -166,7 +166,7 @@ fn rdseed() -> Option<u128> {
 /// Checks CPUID for if the CPU supports RDSEED instruction
 fn check_random_support() -> bool {
     LOGGER.get().unwrap().lock().trace(
-        Some("Checking if CPU supports RDSEED instruction"),
+        "Checking if CPU supports RDSEED instruction",
         file!(),
         line!(),
     );

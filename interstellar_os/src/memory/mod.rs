@@ -40,7 +40,10 @@ pub unsafe fn init(physical_memory_offset: u64, memory_regions: &'static mut Mem
     }
 
     MEMORY.init_once(|| {
-        Spinlock::new(Memory { total_memory, used_memory: 0 })
+        Spinlock::new(Memory {
+            total_memory,
+            used_memory: 0,
+        })
     });
 
     let frame_allocator = unsafe { BootInfoFrameAllocator::init(memory_regions) };

@@ -16,8 +16,8 @@
 use crate::other::log::LOGGER;
 use crate::{
     drivers::screen::framebuffer::{Color, FRAMEBUFFER},
-    print, println,
     memory::MEMORY,
+    print, println,
 };
 use alloc::vec::Vec;
 
@@ -31,7 +31,7 @@ pub fn handle_console(line: &str) -> bool {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Handling console command"), file!(), line!());
+        .trace("Handling console command", file!(), line!());
     let commands: Vec<&str> = line.trim().split("&&").map(str::trim).collect();
 
     for command in commands {
@@ -210,16 +210,33 @@ fn power(base: f64, exponent: f64) -> f64 {
 /// Print memory details
 fn check_memory() {
     println!("\nMemory Info");
-    println!("Total GB: {}", MEMORY.get().unwrap().lock().total_mem_gigabytes());
-    println!("Total MB: {}", MEMORY.get().unwrap().lock().total_mem_megabytes());
-    println!("Total KB: {}", MEMORY.get().unwrap().lock().total_mem_kilobytes());
+    println!(
+        "Total GB: {}",
+        MEMORY.get().unwrap().lock().total_mem_gigabytes()
+    );
+    println!(
+        "Total MB: {}",
+        MEMORY.get().unwrap().lock().total_mem_megabytes()
+    );
+    println!(
+        "Total KB: {}",
+        MEMORY.get().unwrap().lock().total_mem_kilobytes()
+    );
     println!("Total bytes: {}", MEMORY.get().unwrap().lock().total_memory);
-    
-    println!("Used GB: {}", MEMORY.get().unwrap().lock().total_used_mem_gigabytes());
-    println!("Used MB: {}", MEMORY.get().unwrap().lock().total_used_mem_megabytes());
-    println!("Used KB: {}", MEMORY.get().unwrap().lock().total_used_mem_kilobytes());
+
+    println!(
+        "Used GB: {}",
+        MEMORY.get().unwrap().lock().total_used_mem_gigabytes()
+    );
+    println!(
+        "Used MB: {}",
+        MEMORY.get().unwrap().lock().total_used_mem_megabytes()
+    );
+    println!(
+        "Used KB: {}",
+        MEMORY.get().unwrap().lock().total_used_mem_kilobytes()
+    );
     println!("Used bytes: {}", MEMORY.get().unwrap().lock().used_memory);
-    
 }
 
 /// Executes the "color" command.
@@ -491,7 +508,10 @@ fn change_background_color(args: &[&str]) {
                 .lock()
                 .change_background_color(Color::White);
         } else {
-            println!("\nInvalid Color: {}  - Tip Use bgcolor help or bgcolor /?", arg);
+            println!(
+                "\nInvalid Color: {}  - Tip Use bgcolor help or bgcolor /?",
+                arg
+            );
         }
     }
 }

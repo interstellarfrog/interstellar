@@ -32,7 +32,7 @@ pub fn main() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Running 'in kernel' tests"), file!(), line!());
+        .trace("Running 'in kernel' tests", file!(), line!());
     print!("\nSimple Addition...");
     simple_addition();
 
@@ -51,7 +51,7 @@ pub fn main() {
     print!("\nLarge Vector Allocation...");
     large_vec();
     LOGGER.get().unwrap().lock().trace(
-        Some("Half way through running 'in kernel' tests"),
+        "Half way through running 'in kernel' tests",
         file!(),
         line!(),
     );

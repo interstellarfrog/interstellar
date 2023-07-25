@@ -24,7 +24,6 @@ use interstellar_os as lib;
 use bootloader_api::{entry_point, BootInfo, BootloaderConfig};
 use lib::{drivers::random::RandomNumberGenerator, other::log::LOGGER, serial_print};
 
-#[cfg(feature = "UEFI")]
 pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     use bootloader_api::config::*;
 
@@ -35,26 +34,6 @@ pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     mappings.physical_memory = Some(Mapping::Dynamic);
     mappings.page_table_recursive = None;
     mappings.aslr = true;
-    mappings.dynamic_range_start = Some(0xFFFF_8000_0000_0000);
-    mappings.dynamic_range_end = Some(0xFFFF_FFFF_FFFF_FFFF);
-
-    let mut config = BootloaderConfig::new_default();
-    config.mappings = mappings;
-    config.kernel_stack_size = 80 * 1024 * 128;
-    config
-};
-
-#[cfg(not(feature = "UEFI"))]
-pub static BOOTLOADER_CONFIG: BootloaderConfig = {
-    use bootloader_api::config::*;
-
-    let mut mappings = Mappings::new_default();
-    mappings.kernel_stack = Mapping::Dynamic;
-    mappings.boot_info = Mapping::Dynamic;
-    mappings.framebuffer = Mapping::Dynamic;
-    mappings.physical_memory = Some(Mapping::Dynamic);
-    mappings.page_table_recursive = None;
-    mappings.aslr = false;
     mappings.dynamic_range_start = Some(0xFFFF_8000_0000_0000);
     mappings.dynamic_range_end = Some(0xFFFF_FFFF_FFFF_FFFF);
 
@@ -83,11 +62,11 @@ fn random(boot_info: &'static mut BootInfo) -> ! {
 
 #[test_case]
 fn random_numbers_0_to_100() {
-    LOGGER.get().unwrap().lock().trace(
-        Some("Running random numbers 0 to 100 test"),
-        file!(),
-        line!(),
-    );
+    LOGGER
+        .get()
+        .unwrap()
+        .lock()
+        .trace("Running random numbers 0 to 100 test", file!(), line!());
     let mut rng = RandomNumberGenerator::default();
 
     for _ in 0..50 {
@@ -100,11 +79,11 @@ fn random_numbers_0_to_100() {
 
 #[test_case]
 fn random_numbers_0_to_max() {
-    LOGGER.get().unwrap().lock().trace(
-        Some("Running random numbers 0 to max test"),
-        file!(),
-        line!(),
-    );
+    LOGGER
+        .get()
+        .unwrap()
+        .lock()
+        .trace("Running random numbers 0 to max test", file!(), line!());
     let mut rng = RandomNumberGenerator::default();
 
     for _ in 0..50 {
@@ -118,7 +97,7 @@ fn random_numbers_0_to_max() {
 #[test_case]
 fn random_numbers_min_to_2_147_483_646() {
     LOGGER.get().unwrap().lock().trace(
-        Some("Running random numbers min to 2,147,483,646 test"),
+        "Running random numbers min to 2,147,483,646 test",
         file!(),
         line!(),
     );
@@ -138,7 +117,7 @@ fn random_letters() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Running random letters test"), file!(), line!());
+        .trace("Running random letters test", file!(), line!());
     let mut rng = RandomNumberGenerator::default();
 
     for _ in 0..50 {

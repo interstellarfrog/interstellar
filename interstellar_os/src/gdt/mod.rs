@@ -119,7 +119,7 @@ pub fn init() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Initializing GDT"), file!(), line!());
+        .trace("Initializing GDT", file!(), line!());
 
     LOGGER.get().unwrap().lock().info("Initializing GDT");
 }

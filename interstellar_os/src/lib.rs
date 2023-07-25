@@ -20,18 +20,12 @@
 #![feature(let_chains)]
 #![cfg(not(feature = "std"))]
 
-use crate::other::log::{Logger, BACKTRACE, BACKTRACE_INDEX, MAX_BACKTRACE_ENTRIES};
-use alloc::string::String;
-use alloc::vec as v;
-use alloc::vec::Vec;
 use bootloader_api::BootInfo as BI;
-use core::env;
 use drivers::fs::initrd;
 use drivers::screen::framebuffer::{FrameBufferWriter, FRAMEBUFFER};
 use other::assembly::hlt_loop;
-use other::info::{BootInfo, Info, BOOT_INFO, INFO};
-use other::log::{LogLevel, LOGGER};
-use task::console_handler::{ConsoleInfo, CONSOLE_INFO};
+use other::info::BOOT_INFO;
+use other::log::{self, LogLevel, LOGGER};
 use x86_64::instructions::port::Port;
 use x86_64::PhysAddr;
 
@@ -54,11 +48,10 @@ pub mod drivers {
 }
 
 pub mod acpi;
-pub mod interrupts;
-//pub mod memory;
-pub mod memory;
-//pub mod allocator;
 pub mod allocator;
+pub mod interrupts;
+pub mod memory;
+pub mod time;
 
 pub mod other {
     pub mod assembly;
@@ -75,148 +68,166 @@ pub mod task;
 extern crate alloc;
 
 /// Initializes the kernel by setting up the framebuffer, creating the kernel heap, initializing the Global Descriptor Table (GDT),
-/// Interrupt Descriptor Table (IDT), Programmable Interrupt Controllers (PICs), enabling interrupts, and performing other necessary initialization
+/// Interrupt Descriptor Table (IDT), Advanced Programmable Interrupt Controllers (APICs), enabling interrupts, and performing other necessary initialization
 pub fn init(boot_info: &'static mut BI) {
+    // Initialize the logger
     #[cfg(not(debug_assertions))]
     #[cfg(not(feature = "test"))]
-    // Initialize the logger
-    LOGGER.init_once(|| {
-        let screen_printing = true;
-        let serial_printing = false;
-        let log_level = LogLevel::Normal;
-        let tracing = true;
+    log::init(true, false, LogLevel::Normal, true);
 
-        spinning_top::Spinlock::new(Logger {
-            screen_printing,
-            serial_printing,
-            log_level,
-            tracing,
-        })
-    });
-
+    // Initialize the debug logger
     #[cfg(debug_assertions)]
     #[cfg(not(feature = "test"))]
-    // Initialize the logger
-    LOGGER.init_once(|| {
-        let screen_printing = true;
-        let serial_printing = true;
-        let log_level = LogLevel::High;
-        let tracing = true;
+    log::init(true, true, LogLevel::High, true);
 
-        spinning_top::Spinlock::new(Logger {
-            screen_printing,
-            serial_printing,
-            log_level,
-            tracing,
-        })
-    });
-
-    #[cfg(feature = "test")]
     // Initialize the test logger
-    LOGGER.init_once(|| {
-        let screen_printing = false;
-        let serial_printing = true;
-        let log_level = LogLevel::Low;
-        let tracing = true;
+    #[cfg(feature = "test")]
+    log::init(false, true, LogLevel::Low, true);
 
-        spinning_top::Spinlock::new(Logger {
-            screen_printing,
-            serial_printing,
-            log_level,
-            tracing,
-        })
-    });
+    //##################################
+    //    Initialize And Test Info
+    //##################################
 
-    BACKTRACE.init_once(|| spinning_top::Spinlock::new([None; MAX_BACKTRACE_ENTRIES]));
+    // Required
 
-    BACKTRACE_INDEX.init_once(|| spinning_top::Spinlock::new(0));
+    let framebuffer_info; // Needed to write to screen
+    let physical_memory_offset; // Needed to translate virt addr to phys addr
+    let rsdp_address; // Needed to Parse ACPI Tables
 
-    LOGGER
-        .get()
-        .unwrap()
-        .lock()
-        .trace(Some("Initialized logger"), file!(), line!());
+    // Not Required
 
-    LOGGER
-        .get()
-        .unwrap()
-        .lock()
-        .trace(Some("Initializing info"), file!(), line!());
+    let mut ramdisk_address = None; // Will Be Required In Future For Drivers Ect
+    let mut recursive_index = None; // Never Needed And Never Will Be Used
+    let mut tls_template = None; // Dont Know If We Need This
 
-    BOOT_INFO.init_once(|| {
-        let api_version = boot_info.api_version;
-        let mut framebuffer_info = None;
-        if let Some(fb) = boot_info.framebuffer.as_mut() {
-            framebuffer_info = Some(fb.info());
-        }
-        let physical_memory_offset = boot_info.physical_memory_offset.as_mut().cloned();
-        let recursive_index = boot_info.recursive_index.as_mut().cloned();
-        let rsdp_addr = boot_info.rsdp_addr.as_mut().cloned();
-        let tls_template = boot_info.tls_template.as_mut().cloned();
-        let ramdisk_addr = boot_info.ramdisk_addr.as_mut().cloned();
-        let ramdisk_len = boot_info.ramdisk_len;
-
-        spinning_top::Spinlock::new(BootInfo {
-            api_version,
-            framebuffer_info,
-            physical_memory_offset,
-            recursive_index,
-            rsdp_addr,
-            tls_template,
-            ramdisk_addr,
-            ramdisk_len,
-        })
-    });
-
-    INFO.init_once(|| {
-        let os_version = env!("CARGO_PKG_VERSION", "Could not get OS version");
-
-        spinning_top::Spinlock::new(Info { os_version })
-    });
-
-    CONSOLE_INFO.init_once(|| {
-        let console_lines: Vec<String> = v![];
-
-        spinning_top::Spinlock::new(ConsoleInfo {
-            console_lines,
-            temp_line: String::new(),
-            max_lines: 400,
-            current_line_index: 0,
-        })
-    });
-
-    LOGGER
-        .get()
-        .unwrap()
-        .lock()
-        .trace(Some("Initializing framebuffer"), file!(), line!());
-
-    FRAMEBUFFER.init_once(|| {
-        if let Some(info) = BOOT_INFO.get().unwrap().lock().framebuffer_info {
-            if let Some(buffer) = boot_info.framebuffer.as_mut() {
-                spinning_top::Spinlock::new(FrameBufferWriter::new(buffer.buffer_mut(), info))
-            } else {
-                panic!("BOOTLOADER NOT CONFIGURED TO SUPPORT FRAMEBUFFER");
-            }
-        } else {
-            panic!("BOOTLOADER NOT CONFIGURED TO SUPPORT FRAMEBUFFER");
-        }
-    });
-
-    LOGGER
-        .get()
-        .unwrap()
-        .lock()
-        .trace(Some("Initializing Memory"), file!(), line!());
-
-    if let bootloader_api::info::Optional::Some(phys_mem_offset) = boot_info.physical_memory_offset
-    {
-        allocator::init(Some(phys_mem_offset), &mut boot_info.memory_regions);
+    // Needed to write to screen
+    if let Some(fb) = boot_info.framebuffer.as_mut() {
+        framebuffer_info = fb.info();
     } else {
-        panic!("No physical memory offset given from bootloader");
+        LOGGER.get().unwrap().lock().trace(
+            "Bootloader Has Not Passed Framebuffer",
+            file!(),
+            line!(),
+        );
+        panic!("Bootloader Has Not Passed Framebuffer");
+    }
+
+    // Needed to translate virt addr to phys addr
+    if let Some(phys_mem_offset) = boot_info.physical_memory_offset.as_mut().cloned() {
+        physical_memory_offset = phys_mem_offset;
+    } else {
+        LOGGER.get().unwrap().lock().trace(
+            "Bootloader Has Not Passed Physical Memory Offset",
+            file!(),
+            line!(),
+        );
+        panic!("Bootloader Has Not Passed Physical Memory Offset");
+    }
+
+    // Needed to Parse ACPI Tables
+    if let Some(rsdp_addr) = boot_info.rsdp_addr.as_mut().cloned() {
+        rsdp_address = rsdp_addr;
+    } else {
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .trace("RSDP Address Not Found", file!(), line!());
+        panic!("RSDP Address Not Passed To Kernel");
+    }
+
+    // Will Be Required In Future For Drivers Ect
+    if let Some(ramdisk_addr) = boot_info.ramdisk_addr.as_mut().cloned() {
+        ramdisk_address = Some(ramdisk_addr);
+    } else {
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .trace("Ramdisk Addr Not Found", file!(), line!());
+    }
+
+    // Never Needed And Never Will Be Used
+    if let Some(recurs_index) = boot_info.recursive_index.as_mut().cloned() {
+        recursive_index = Some(recurs_index);
+    } else {
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .trace("Recursive Index Not Found", file!(), line!());
+    }
+
+    // Dont Know If We Need This
+    if let Some(tls_templ) = boot_info.tls_template.as_mut().cloned() {
+        tls_template = Some(tls_templ);
+    } else {
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .trace("TLS Template Not Found", file!(), line!());
+    }
+
+    // Initialize Kernel Info
+    crate::other::info::boot_info_init(
+        boot_info.api_version,
+        framebuffer_info,
+        physical_memory_offset,
+        recursive_index,
+        rsdp_address,
+        tls_template,
+        ramdisk_address,
+        boot_info.ramdisk_len,
+    );
+    crate::other::info::info_init();
+
+    // This Is Just Initializing The Struct That Holds The Console lines
+    crate::task::console_handler::init();
+
+    // Initialize Framebuffer
+    {
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .trace("Initializing framebuffer", file!(), line!());
+
+        FRAMEBUFFER.init_once(|| {
+            spinning_top::Spinlock::new(FrameBufferWriter::new(
+                boot_info.framebuffer.as_mut().unwrap().buffer_mut(),
+                BOOT_INFO.get().unwrap().lock().framebuffer_info,
+            ))
+        });
+    }
+
+    // Initialize Memory And Heap
+    {
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .trace("Initializing Memory", file!(), line!());
+
+        allocator::init(
+            Some(BOOT_INFO.get().unwrap().lock().physical_memory_offset),
+            &mut boot_info.memory_regions,
+        );
     }
 
     // Do not use print, println before this point
+
+    if ramdisk_address.is_none() {
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .warn("Ramdisk Address Has Not Been Passed To Kernel");
+    }
+
+    if tls_template.is_none() {
+        LOGGER.get().unwrap().lock().warn("TLS Template Not Found");
+    }
 
     LOGGER.get().unwrap().lock().info("Logger initialized");
 
@@ -233,32 +244,41 @@ pub fn init(boot_info: &'static mut BI) {
         memory::MEMORY.get().unwrap().lock().total_mem_gigabytes()
     ));
 
-    let ramdisk_addr = BOOT_INFO.get().unwrap().lock().ramdisk_addr; // Stops deadlock
+    // Initialize The INITRD
+    {
+        let ramdisk_addr = BOOT_INFO.get().unwrap().lock().ramdisk_addr; // Stops deadlock
 
-    if let Some(ramdisk_addr) = ramdisk_addr {
-        let ramdisk_len = BOOT_INFO.get().unwrap().lock().ramdisk_len;
-        unsafe { initrd::init(ramdisk_addr as *const u8, ramdisk_len) };
-    } else {
-        LOGGER.get().unwrap().lock().info("No initrd found");
+        if let Some(ramdisk_addr) = ramdisk_addr {
+            let ramdisk_len = BOOT_INFO.get().unwrap().lock().ramdisk_len;
+            unsafe { initrd::init(ramdisk_addr as *const u8, ramdisk_len) };
+        } else {
+            LOGGER.get().unwrap().lock().info("No initrd found");
+        }
     }
 
+    // Initialize The Global Descriptor Table
     gdt::init();
 
+    // Initialize The Time Struct
+    time::init();
+
+    // Parse The ACPI Tables
     let acpi_tables = acpi::init(PhysAddr::new(boot_info.rsdp_addr.into_option().unwrap()));
 
-    let acpi_platform_info = acpi_tables.platform_info().unwrap();
+    // Create IDT And APIC Structures And Enable Interrupts
+    interrupts::init(&acpi_tables.platform_info().unwrap());
 
-    interrupts::init(&acpi_platform_info);
-
+    // Enable The PS/2 Keyboard
     drivers::hid::keyboard::init();
 
+    // Enable The PS/2 Mouse
     drivers::hid::mouse::init();
 
     LOGGER
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Initialized kernel"), file!(), line!());
+        .trace("Initialized kernel", file!(), line!());
 }
 
 /// Allocation error handler
@@ -268,11 +288,12 @@ fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
 }
 
 // All below false errors are mostly for VScode as rust analyzer runs commands like cargo check --workspace or cargo clippy --workspace.
-// I recommend changing your cargo check to cargo clippy to improve your code quality.
+// I recommend changing your "cargo check" to "cargo clippy" to improve your code quality.
 
+/// Panic Handler For Main Kernel Panic
 #[cfg(target_os = "none")] // Stops false error caused by byteorder which AML depends on for testing or something
 #[cfg(not(test))] // Stops false error caused by testing framework
-#[cfg(not(feature = "test"))]
+#[cfg(not(feature = "test"))] // Stops false error caused by testing framework
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     use alloc::format;
@@ -293,6 +314,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     hlt_loop();
 }
 
+/// Panic Handler For Test Framework
 #[cfg(feature = "test")]
 #[panic_handler]
 pub fn test_panic_handler(info: &core::panic::PanicInfo) -> ! {

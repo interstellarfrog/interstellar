@@ -25,7 +25,7 @@ pub fn interrupts_enabled() -> bool {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Cheking if interrupts are enabled"), file!(), line!());
+        .trace("Cheking if interrupts are enabled", file!(), line!());
     let r: u64;
 
     // Push Flags Reg Value Onto Stack Pop Into r
@@ -48,7 +48,7 @@ pub fn interrupts_enable() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Enabling interrupts"), file!(), line!());
+        .trace("Enabling interrupts", file!(), line!());
     unsafe {
         asm!("sti", options(nomem, nostack));
     }
@@ -61,7 +61,7 @@ pub fn interrupts_enable_and_hlt() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Enabling interrupts and halting"), file!(), line!());
+        .trace("Enabling interrupts and halting", file!(), line!());
     unsafe {
         asm!("sti; hlt", options(nomem, nostack));
     }
@@ -74,7 +74,7 @@ pub fn interrupts_disable() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Disabling interrupts"), file!(), line!());
+        .trace("Disabling interrupts", file!(), line!());
     unsafe {
         asm!("cli", options(nomem, nostack));
     }
@@ -93,11 +93,11 @@ pub fn interrupts_without<F, R>(f: F) -> R
 where
     F: FnOnce() -> R,
 {
-    LOGGER.get().unwrap().lock().trace(
-        Some("Executing a function without interrupts"),
-        file!(),
-        line!(),
-    );
+    LOGGER
+        .get()
+        .unwrap()
+        .lock()
+        .trace("Executing a function without interrupts", file!(), line!());
     if interrupts_enabled() {
         interrupts_disable();
         let ret = f();
@@ -114,7 +114,7 @@ pub fn hlt() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Halting CPU"), file!(), line!());
+        .trace("Halting CPU", file!(), line!());
     unsafe {
         asm!("hlt", options(nomem, nostack, preserves_flags));
     }
@@ -129,7 +129,7 @@ pub fn hlt_loop() -> ! {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Entering halt loop"), file!(), line!());
+        .trace("Entering halt loop", file!(), line!());
     loop {
         unsafe {
             asm!("hlt", options(nomem, nostack, preserves_flags));
@@ -144,7 +144,7 @@ pub fn exception_breakpoint() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Causing breakpoint exception"), file!(), line!());
+        .trace("Causing breakpoint exception", file!(), line!());
     unsafe {
         asm!("int3", options(nomem, nostack));
     }
@@ -157,7 +157,7 @@ pub fn nop() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Executing nop instruction"), file!(), line!());
+        .trace("Executing nop instruction", file!(), line!());
     unsafe {
         asm!("nop", options(nomem, nostack, preserves_flags));
     }

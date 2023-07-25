@@ -13,19 +13,26 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-use crate::other::log::LOGGER;
+use conquer_once::spin::OnceCell;
+use spinning_top::Spinlock;
+
+pub static TIMER: OnceCell<Spinlock<Timer>> = OnceCell::uninit();
 
 pub fn init() {
-    LOGGER
-        .get()
-        .unwrap()
-        .lock()
-        .trace("Initializing keyboard", file!(), line!());
+    TIMER.init_once(|| Spinlock::new(Timer { count: 0 }));
+}
 
-    LOGGER.get().unwrap().lock().info("Initializing keyboard");
+pub struct Timer {
+    count: u64,
+}
 
-    let mut cmd = x86_64::instructions::port::Port::<u8>::new(0x64);
-    unsafe {
-        cmd.write(0xae); // enable keyboard port
+impl Timer {
+    /// Increment the count by 1
+    pub fn tick(&mut self) {
+        self.count += 1;
+    }
+    // Returns the current timer count
+    pub fn get_count(&self) -> u64 {
+        self.count
     }
 }

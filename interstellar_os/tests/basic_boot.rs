@@ -24,7 +24,6 @@ use interstellar_os as lib;
 use bootloader_api::{entry_point, BootInfo, BootloaderConfig};
 use lib::{other::log::LOGGER, serial_print};
 
-#[cfg(feature = "UEFI")]
 pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     use bootloader_api::config::*;
 
@@ -35,26 +34,6 @@ pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     mappings.physical_memory = Some(Mapping::Dynamic);
     mappings.page_table_recursive = None;
     mappings.aslr = true;
-    mappings.dynamic_range_start = Some(0xFFFF_8000_0000_0000);
-    mappings.dynamic_range_end = Some(0xFFFF_FFFF_FFFF_FFFF);
-
-    let mut config = BootloaderConfig::new_default();
-    config.mappings = mappings;
-    config.kernel_stack_size = 80 * 1024 * 128;
-    config
-};
-
-#[cfg(not(feature = "UEFI"))]
-pub static BOOTLOADER_CONFIG: BootloaderConfig = {
-    use bootloader_api::config::*;
-
-    let mut mappings = Mappings::new_default();
-    mappings.kernel_stack = Mapping::Dynamic;
-    mappings.boot_info = Mapping::Dynamic;
-    mappings.framebuffer = Mapping::Dynamic;
-    mappings.physical_memory = Some(Mapping::Dynamic);
-    mappings.page_table_recursive = None;
-    mappings.aslr = false;
     mappings.dynamic_range_start = Some(0xFFFF_8000_0000_0000);
     mappings.dynamic_range_end = Some(0xFFFF_FFFF_FFFF_FFFF);
 
@@ -87,7 +66,7 @@ fn simple_addition() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Running simple addition"), file!(), line!());
+        .trace("Running simple addition", file!(), line!());
     assert_eq!(1 + 1, 1 + 1);
 }
 
@@ -97,7 +76,7 @@ fn simple_subtraction() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Running simple subtraction"), file!(), line!());
+        .trace("Running simple subtraction", file!(), line!());
     assert_eq!(5 - 2, 3);
 }
 
@@ -107,7 +86,7 @@ fn simple_multiplication() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Running simple multiplication"), file!(), line!());
+        .trace("Running simple multiplication", file!(), line!());
     assert_eq!(5 * 5, 5 * 5);
 }
 
@@ -117,6 +96,6 @@ fn simple_division() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Running simple division"), file!(), line!());
+        .trace("Running simple division", file!(), line!());
     assert_eq!(50 / 5, 50 / 5);
 }

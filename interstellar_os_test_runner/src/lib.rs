@@ -145,8 +145,7 @@ pub fn test_runner(other_tests: &[&dyn Testable]) {
                 Err(_) => {
                     failed_os_tests += 1;
                     failed_os_tests_names.append(&mut vec![String::from(test.to_str().unwrap())]);
-                
-                },
+                }
             }
         }
 

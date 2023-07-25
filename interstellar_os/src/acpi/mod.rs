@@ -13,8 +13,12 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use core::panic;
+
 use crate::{other::info::BOOT_INFO, other::log::LOGGER};
-use acpi::{AcpiHandler, AcpiTables, AmlTable, HpetInfo, PciConfigRegions, PhysicalMapping};
+use acpi::{
+    sdt::Signature, AcpiHandler, AcpiTables, AmlTable, HpetInfo, PciConfigRegions, PhysicalMapping,
+};
 use alloc::vec::Vec;
 use aml::{AmlContext, AmlError};
 use os_units::Bytes;
@@ -75,41 +79,43 @@ pub fn init(rsdp_address: PhysAddr) -> AcpiTables<AcpiHandlerImpl> {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Initializing ACPI"), file!(), line!());
+        .trace("Initializing ACPI", file!(), line!());
 
     LOGGER.get().unwrap().lock().info("Initializing ACPI");
 
-    let mut acpi_tables =
-        unsafe { AcpiTables::from_rsdp(AcpiHandlerImpl, rsdp_address.as_u64() as usize) }.unwrap();
+    let acpi_tables =
+        unsafe { AcpiTables::from_rsdp(AcpiHandlerImpl, rsdp_address.as_u64() as usize) };
 
-    let _hpet_info = HpetInfo::new(&acpi_tables).unwrap();
+    match acpi_tables {
+        Ok(mut acpi_tables) => {
+            let _hpet_info = HpetInfo::new(&acpi_tables).unwrap();
 
-    let dsdt = acpi_tables.dsdt.take().unwrap();
+            for sdt in &acpi_tables.sdts {
+                if sdt.0 == &Signature::MADT {}
+            }
 
-    let _pci = PciConfigRegions::new(&acpi_tables);
+            let dsdt = acpi_tables.dsdt.take().unwrap();
 
-    let mut aml_tables = alloc::vec![&dsdt];
+            let _pci = PciConfigRegions::new(&acpi_tables);
 
-    let ssdts = &acpi_tables.ssdts;
+            let mut aml_tables = alloc::vec![&dsdt];
 
-    for ssdt in ssdts {
-        aml_tables.append(&mut alloc::vec![ssdt]);
+            let ssdts = &acpi_tables.ssdts;
+
+            for ssdt in ssdts {
+                aml_tables.append(&mut alloc::vec![ssdt]);
+            }
+
+            let _platform_info = acpi::platform::PlatformInfo::new(&acpi_tables);
+
+            let _context = parse_aml_tables(aml_tables);
+
+            acpi_tables
+        }
+        Err(e) => {
+            panic!("Error Parsing ACPI tables, error code: {:#?}", e);
+        }
     }
-
-    use acpi::platform::PlatformInfo;
-
-    let platform_info = PlatformInfo::new(&acpi_tables);
-
-    platform_info
-        .unwrap()
-        .processor_info
-        .unwrap()
-        .application_processors
-        .len();
-
-    let _context = parse_aml_tables(aml_tables);
-
-    acpi_tables
 }
 
 struct OsAmlHandler;
@@ -117,76 +123,46 @@ struct OsAmlHandler;
 impl aml::Handler for OsAmlHandler {
     fn read_u8(&self, address: usize) -> u8 {
         unsafe {
-            *((address
-                + BOOT_INFO
-                    .get()
-                    .unwrap()
-                    .lock()
-                    .physical_memory_offset
-                    .unwrap() as usize) as *const u8)
+            *((address + BOOT_INFO.get().unwrap().lock().physical_memory_offset as usize)
+                as *const u8)
         }
     }
 
     fn read_u16(&self, address: usize) -> u16 {
         unsafe {
-            *((address
-                + BOOT_INFO
-                    .get()
-                    .unwrap()
-                    .lock()
-                    .physical_memory_offset
-                    .unwrap() as usize) as *const u16)
+            *((address + BOOT_INFO.get().unwrap().lock().physical_memory_offset as usize)
+                as *const u16)
         }
     }
 
     fn read_u32(&self, address: usize) -> u32 {
         unsafe {
-            *((address
-                + BOOT_INFO
-                    .get()
-                    .unwrap()
-                    .lock()
-                    .physical_memory_offset
-                    .unwrap() as usize) as *const u32)
+            *((address + BOOT_INFO.get().unwrap().lock().physical_memory_offset as usize)
+                as *const u32)
         }
     }
 
     fn read_u64(&self, address: usize) -> u64 {
         unsafe {
-            *((address
-                + BOOT_INFO
-                    .get()
-                    .unwrap()
-                    .lock()
-                    .physical_memory_offset
-                    .unwrap() as usize) as *const u64)
+            *((address + BOOT_INFO.get().unwrap().lock().physical_memory_offset as usize)
+                as *const u64)
         }
     }
 
     fn write_u8(&mut self, address: usize, value: u8) {
         let mut addr = unsafe {
-            *((address
-                + BOOT_INFO
-                    .get()
-                    .unwrap()
-                    .lock()
-                    .physical_memory_offset
-                    .unwrap() as usize) as *const u8)
+            *((address + BOOT_INFO.get().unwrap().lock().physical_memory_offset as usize)
+                as *const u8)
         };
-        
+
         let volatile_addr = unsafe { volatile::VolatilePtr::new((&mut addr).into()) };
         volatile_addr.write(value);
     }
 
     fn write_u16(&mut self, address: usize, value: u16) {
         let mut addr = unsafe {
-            *((address
-                + BOOT_INFO
-                    .get()
-                    .unwrap()
-                    .lock()
-                    .physical_memory_offset
-                    .unwrap() as usize) as *const u16)
+            *((address + BOOT_INFO.get().unwrap().lock().physical_memory_offset as usize)
+                as *const u16)
         };
         let volatile_addr = unsafe { volatile::VolatilePtr::new((&mut addr).into()) };
         volatile_addr.write(value);
@@ -194,13 +170,8 @@ impl aml::Handler for OsAmlHandler {
 
     fn write_u32(&mut self, address: usize, value: u32) {
         let mut addr = unsafe {
-            *((address
-                + BOOT_INFO
-                    .get()
-                    .unwrap()
-                    .lock()
-                    .physical_memory_offset
-                    .unwrap() as usize) as *const u32)
+            *((address + BOOT_INFO.get().unwrap().lock().physical_memory_offset as usize)
+                as *const u32)
         };
         let volatile_addr = unsafe { volatile::VolatilePtr::new((&mut addr).into()) };
         volatile_addr.write(value);
@@ -208,13 +179,8 @@ impl aml::Handler for OsAmlHandler {
 
     fn write_u64(&mut self, address: usize, value: u64) {
         let mut addr = unsafe {
-            *((address
-                + BOOT_INFO
-                    .get()
-                    .unwrap()
-                    .lock()
-                    .physical_memory_offset
-                    .unwrap() as usize) as *const u64)
+            *((address + BOOT_INFO.get().unwrap().lock().physical_memory_offset as usize)
+                as *const u64)
         };
         let volatile_addr = unsafe { volatile::VolatilePtr::new((&mut addr).into()) };
         volatile_addr.write(value);
@@ -323,26 +289,22 @@ fn parse_aml_tables(aml_tables: Vec<&AmlTable>) -> Result<AmlContext, AmlError> 
         .get()
         .unwrap()
         .lock()
-        .trace(Some("creating AML context"), file!(), line!());
+        .trace("creating AML context", file!(), line!());
     let mut context = aml::AmlContext::new(
         alloc::boxed::Box::new(OsAmlHandler {}),
         aml::DebugVerbosity::All,
     );
     for aml_table in aml_tables {
         LOGGER.get().unwrap().lock().trace(
-            Some("Making AML bytecode stream from raw pointer"),
+            "Making AML bytecode stream from raw pointer",
             file!(),
             line!(),
         );
         let aml_bytecode: &[u8] = unsafe {
             core::slice::from_raw_parts(
                 (aml_table.address
-                    + BOOT_INFO
-                        .get()
-                        .unwrap()
-                        .lock()
-                        .physical_memory_offset
-                        .unwrap() as usize) as *const u8,
+                    + BOOT_INFO.get().unwrap().lock().physical_memory_offset as usize)
+                    as *const u8,
                 aml_table.length as usize,
             )
         };
@@ -351,7 +313,7 @@ fn parse_aml_tables(aml_tables: Vec<&AmlTable>) -> Result<AmlContext, AmlError> 
             .get()
             .unwrap()
             .lock()
-            .trace(Some("Parsing AML table"), file!(), line!());
+            .trace("Parsing AML table", file!(), line!());
         context
             .parse_table(aml_bytecode)
             .expect("Could not parse AML table");
@@ -360,6 +322,6 @@ fn parse_aml_tables(aml_tables: Vec<&AmlTable>) -> Result<AmlContext, AmlError> 
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Succesfully parsed AML tables"), file!(), line!());
+        .trace("Succesfully parsed AML tables", file!(), line!());
     Ok(context)
 }

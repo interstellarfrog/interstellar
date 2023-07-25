@@ -20,7 +20,7 @@ use x86_64::{
     structures::idt::{InterruptStackFrame, PageFaultErrorCode},
 };
 
-use crate::other::log::LOGGER;
+use crate::{drivers::screen::framebuffer::FRAMEBUFFER, other::log::LOGGER};
 
 /// Handler for the divide by zero exception
 pub extern "x86-interrupt" fn divide_by_zero_fault_handler(stack_frame: InterruptStackFrame) {
@@ -201,6 +201,9 @@ pub extern "x86-interrupt" fn error_interrupt_handler(stack_frame: InterruptStac
 }
 
 pub extern "x86-interrupt" fn apic_timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    unsafe { crate::time::TIMER.get().unwrap().force_unlock() }
+    crate::time::TIMER.get().unwrap().lock().tick();
+
     unsafe {
         super::LAPIC.get().unwrap().lock().end_of_interrupt();
     } // Tell It We Are Done
@@ -223,16 +226,33 @@ pub const LAPIC_INTERRUPT_INDEX_OFFSET: u8 = 0x90;
 /// Enum representing the indices of different IOAPIC interrupts
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
-pub enum InterruptIndex {
+pub enum IoApicInterruptIndex {
     _IoApic = IOAPIC_INTERRUPT_INDEX_OFFSET,    // 40
-    Keyboard,                                   // 41
-    Mouse = IOAPIC_INTERRUPT_INDEX_OFFSET + 12, // 52
-    ApicError = LAPIC_INTERRUPT_INDEX_OFFSET,   // 144
-    Timer,                                      // 145
-    Spurious,
+    Pit,                                        // 41
+    Keyboard,                                   // 42
+    Mouse = IOAPIC_INTERRUPT_INDEX_OFFSET + 12, // 53
 }
 
-impl InterruptIndex {
+impl IoApicInterruptIndex {
+    pub fn as_u8(self) -> u8 {
+        self as u8
+    }
+
+    pub fn as_usize(self) -> usize {
+        usize::from(self.as_u8())
+    }
+}
+
+/// Enum representing the indices of different LAPIC interrupts
+#[derive(Debug, Clone, Copy)]
+#[repr(u8)]
+pub enum LApicInterruptIndex {
+    ApicError = LAPIC_INTERRUPT_INDEX_OFFSET, // 144
+    Timer,                                    // 145
+    Spurious,                                 // 146
+}
+
+impl LApicInterruptIndex {
     pub fn as_u8(self) -> u8 {
         self as u8
     }
@@ -245,6 +265,8 @@ impl InterruptIndex {
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum IoApicTableIndex {
+    // These can be different depending on the UEFI software but most map them 1:1 the same as the PICS
+    Pit = 0,
     Keyboard = 1,
     Mouse = 12,
 }
@@ -266,6 +288,17 @@ pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
 
 pub static PICS: spin::Mutex<ChainedPics> =
     spin::Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET) });
+
+pub extern "x86-interrupt" fn pit_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    //serial_println!("PIT TIMER INTERRUPT!!!!");
+    unsafe { FRAMEBUFFER.get().unwrap().force_unlock() };
+
+    //print!(".");
+
+    unsafe {
+        super::LAPIC.get().unwrap().lock().end_of_interrupt();
+    } // Tell It We Are Done
+}
 
 /// Handler for the keyboard interrupt
 pub extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {

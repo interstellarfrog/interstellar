@@ -121,11 +121,15 @@ lazy_static! {
         //#                APIC Interrupts
         //################################################
 
-        idt[InterruptIndex::ApicError.as_usize()].set_handler_fn(error_interrupt_handler);
-        idt[InterruptIndex::Timer.as_usize()].set_handler_fn(apic_timer_interrupt_handler);
-        idt[InterruptIndex::Spurious.as_usize()].set_handler_fn(spurious_interrupt_handler);
-        idt[InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler);
-        idt[InterruptIndex::Mouse.as_usize()].set_handler_fn(mouse_interrupt_handler);
+        idt[IoApicInterruptIndex::Pit.as_usize()].set_handler_fn(pit_interrupt_handler);
+        idt[IoApicInterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler);
+        idt[IoApicInterruptIndex::Mouse.as_usize()].set_handler_fn(mouse_interrupt_handler);
+
+        idt[LApicInterruptIndex::ApicError.as_usize()].set_handler_fn(error_interrupt_handler);
+        idt[LApicInterruptIndex::Timer.as_usize()].set_handler_fn(apic_timer_interrupt_handler);
+        idt[LApicInterruptIndex::Spurious.as_usize()].set_handler_fn(spurious_interrupt_handler);
+
+
 
         idt
     };
@@ -137,7 +141,7 @@ pub fn init(acpi_platform_info: &PlatformInfo) {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Initializing interrupts"), file!(), line!());
+        .trace("Initializing interrupts", file!(), line!());
 
     LOGGER.get().unwrap().lock().info("Initializing interrupts");
 
@@ -163,12 +167,43 @@ pub fn init(acpi_platform_info: &PlatformInfo) {
         init_lapic(apic_info);
 
         init_ioapic(apic_info);
+
+        // Enable PIT  - FIX ME!!!!!
+
+        //let mut command_port = x86_64::instructions::port::Port::new(0x43);
+
+        //unsafe {
+        //    command_port.write(0b00110110u8); // set operating mode 2
+        //}
+
+        //let mut data_port = x86_64::instructions::port::Port::new(0x40);
+
+        //unsafe {
+        //    data_port.write((1193 & 0xFF) as u8); // lower byte of reload value
+        //    data_port.write((1193 >> 8) as u8); // upper byte of reload value
+        //}
+
+        //unsafe { LAPIC.get().unwrap().lock().disable_timer() };
+
+        //unsafe { LAPIC.get().unwrap().lock().set_timer_initial(1) };
+
+        //unsafe { LAPIC.get().unwrap().lock().enable_timer() };
+
+        // Wait for 10 ms using PIT
+
+        // disable timer
+
+        // check how many ticks the timer executed
+
+        // set new timer settings
+
+        // enable timer
     } else {
         LOGGER
             .get()
             .unwrap()
             .lock()
-            .trace(Some("Interrupt model not supported"), file!(), line!());
+            .trace("Interrupt model not supported", file!(), line!());
         panic!("interstellar OS relys on APIC which your processor does not support")
     };
 
@@ -176,7 +211,7 @@ pub fn init(acpi_platform_info: &PlatformInfo) {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Enabling interrupts"), file!(), line!());
+        .trace("Enabling interrupts", file!(), line!());
 
     LOGGER.get().unwrap().lock().info("Enabling interrupts");
 
@@ -188,7 +223,7 @@ fn init_lapic(apic_info: &ApicInfo) {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Initializing LAPIC"), file!(), line!());
+        .trace("Initializing LAPIC", file!(), line!());
 
     LOGGER.get().unwrap().lock().info("Initializing LAPIC");
     unsafe {
@@ -203,17 +238,19 @@ fn init_lapic(apic_info: &ApicInfo) {
 
         let mut lapic = LocalApicBuilder::new()
             .set_xapic_base(apic_virtual_address.as_u64())
-            .spurious_vector(InterruptIndex::Spurious.as_usize())
-            .error_vector(InterruptIndex::ApicError.as_usize())
-            .timer_vector(InterruptIndex::Timer.as_usize())
-            .timer_divide(TimerDivide::Div256)
+            .spurious_vector(LApicInterruptIndex::Spurious.as_usize())
+            .error_vector(LApicInterruptIndex::ApicError.as_usize())
+            .timer_divide(TimerDivide::Div16)
+            .timer_vector(LApicInterruptIndex::Timer.as_usize())
             .timer_initial(10_000_000)
             .build()
             .unwrap_or_else(|e| panic!("{}", e));
 
         unsafe {
             lapic.enable();
+        }
 
+        unsafe {
             LOGGER.get().unwrap().lock().info(&alloc::format!(
                 "apic id: {}, version: {}",
                 lapic.id(),
@@ -230,7 +267,7 @@ fn init_ioapic(apic_info: &ApicInfo) {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Initializing IOPIC"), file!(), line!());
+        .trace("Initializing IOPIC", file!(), line!());
 
     LOGGER.get().unwrap().lock().info("Initializing IOPIC");
 
@@ -257,13 +294,20 @@ fn init_ioapic(apic_info: &ApicInfo) {
             register_io_apic_entry(
                 &mut ioapic,
                 lapic.id() as u8,
-                InterruptIndex::Keyboard.as_u8(),
+                IoApicInterruptIndex::Pit.as_u8(),
+                IoApicTableIndex::Pit.into(),
+            );
+
+            register_io_apic_entry(
+                &mut ioapic,
+                lapic.id() as u8,
+                IoApicInterruptIndex::Keyboard.as_u8(),
                 IoApicTableIndex::Keyboard.into(),
             );
             register_io_apic_entry(
                 &mut ioapic,
                 lapic.id() as u8,
-                InterruptIndex::Mouse.as_u8(),
+                IoApicInterruptIndex::Mouse.as_u8(),
                 IoApicTableIndex::Mouse.into(),
             );
         }

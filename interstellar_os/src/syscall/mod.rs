@@ -26,7 +26,7 @@ pub extern "x86-interrupt" fn syscall_handler(_stack_frame: InterruptStackFrame)
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Handling system call"), file!(), line!());
+        .trace("Handling system call", file!(), line!());
     serial_println!("SYSCALL HANDLER: Started");
     let mut syscall_number: i32;
     unsafe {

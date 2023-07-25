@@ -224,7 +224,6 @@ impl FrameBufferWriter {
             '\n' => self.newline(),
             '\r' => self.carriage_return(),
             c => {
-
                 let new_xpos = self.x_pos + font_constants::CHAR_RASTER_WIDTH;
                 if new_xpos >= self.width() {
                     self.newline();
@@ -246,15 +245,15 @@ impl FrameBufferWriter {
     /// Prints a rendered char into the framebuffer.
     /// Updates `self.x_pos`.
     fn write_rendered_char(
-        &mut self, 
-        rendered_char: RasterizedChar, 
-        color: &[u8; 4], 
-        low_intensity_color: &[u8; 4]) {
-        
+        &mut self,
+        rendered_char: RasterizedChar,
+        color: &[u8; 4],
+        low_intensity_color: &[u8; 4],
+    ) {
         fn lerp(a: u8, b: u8, t: f32) -> u8 {
             ((1.0 - t) * a as f32 + t * b as f32) as u8
         }
-    
+
         for (y, row) in rendered_char.raster().iter().enumerate() {
             for (x, byte) in row.iter().enumerate() {
                 let intensity = *byte as f32 / 255.0;
@@ -267,7 +266,7 @@ impl FrameBufferWriter {
                 self.write_pixel(self.x_pos + x, self.y_pos + y, pixel_color);
             }
         }
-    
+
         self.x_pos += rendered_char.width() + LETTER_SPACING;
     }
 
@@ -311,7 +310,6 @@ impl FrameBufferWriter {
         // Write Pixel To Framebuffer
         self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
             .copy_from_slice(&color[..bytes_per_pixel]);
-
     }
 
     /// Reads the color of a pixel at the specified coordinates.
@@ -355,7 +353,6 @@ impl FrameBufferWriter {
                 .copy_from_slice(&color[..bytes_per_pixel]);
             self.framebuffer[bottom_byte_offset..(bottom_byte_offset + bytes_per_pixel)]
                 .copy_from_slice(&color[..bytes_per_pixel]);
-
         }
 
         // Draw left and right edges
@@ -370,7 +367,6 @@ impl FrameBufferWriter {
                 .copy_from_slice(&color[..bytes_per_pixel]);
             self.framebuffer[right_byte_offset..(right_byte_offset + bytes_per_pixel)]
                 .copy_from_slice(&color[..bytes_per_pixel]);
-
         }
     }
 

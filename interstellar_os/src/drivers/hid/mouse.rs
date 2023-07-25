@@ -46,7 +46,7 @@ pub fn init() {
         .get()
         .unwrap()
         .lock()
-        .trace(Some("Initializing mouse"), file!(), line!());
+        .trace("Initializing mouse", file!(), line!());
 
     LOGGER.get().unwrap().lock().info("Initializing mouse");
 
@@ -211,21 +211,25 @@ impl Mouse {
             // Moving left
 
             if (x.unsigned_abs() as usize) < self.x.load(Ordering::Relaxed) {
-                self.x.fetch_sub(x.unsigned_abs() as usize, Ordering::Relaxed);
+                self.x
+                    .fetch_sub(x.unsigned_abs() as usize, Ordering::Relaxed);
             } else {
                 self.x.store(0, Ordering::Relaxed);
             }
-            
         }
 
         // Update the y-coordinate of the mouse position
         if y > 0 {
-            if self.y.load(Ordering::Relaxed).checked_sub(y as usize).is_some() {
+            if self
+                .y
+                .load(Ordering::Relaxed)
+                .checked_sub(y as usize)
+                .is_some()
+            {
                 self.y.fetch_sub(y as usize, Ordering::Relaxed);
             } else {
                 self.y.store(0, Ordering::Relaxed);
             }
-            
         } else {
             self.y
                 .fetch_add(y.unsigned_abs() as usize, Ordering::Relaxed);
