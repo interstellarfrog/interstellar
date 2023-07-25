@@ -1,4 +1,5 @@
-//Copyright (C) <2023>  <interstellarfrog>
+//This file contains code for interstellar OS - https://github.com/interstellarfrog/interstellar
+//Copyright (C) 2023  contributors of the interstellar OS project
 //
 //This program is free software: you can redistribute it and/or modify
 //it under the terms of the GNU General Public License as published by
@@ -12,6 +13,7 @@
 //
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 use crate::other::log::LOGGER;
 use lazy_static::lazy_static;
 use x86_64::instructions::segmentation::{Segment, CS, DS, SS};

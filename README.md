@@ -173,25 +173,6 @@ BIOS tests take a long time to run (as much as 30 seconds each) for some reason,
 
 By contributing to this project, you agree that your contributions will be licensed under this projects current license and you agree to the terms and conditions in this projects license.
 
-You should also add your name into the copyright header of the file you contribute to or add one if it does not exist for example:
-
-```License
-//Copyright (C) <2023> <Your name>
-//                                       <- add another line here if there is multiple contributers - Copyright (C) <2023> <Your name>
-//This program is free software: you can redistribute it and/or modify
-//it under the terms of the GNU General Public License as published by
-//the Free Software Foundation, either version 3 of the License, or
-//(at your option) any later version.
-//
-//This program is distributed in the hope that it will be useful,
-//but WITHOUT ANY WARRANTY; without even the implied warranty of
-//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//GNU General Public License for more details.
-//
-//You should have received a copy of the GNU General Public License
-//along with this program.  If not, see <https://www.gnu.org/licenses/>.
-```
-
 Many things need to be implemented see to_do.txt
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for requirements

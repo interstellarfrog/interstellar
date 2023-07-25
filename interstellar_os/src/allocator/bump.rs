@@ -1,4 +1,5 @@
-//Copyright (C) <2023>  <interstellarfrog>
+//This file contains code for interstellar OS - https://github.com/interstellarfrog/interstellar
+//Copyright (C) 2023  contributors of the interstellar OS project
 //
 //This program is free software: you can redistribute it and/or modify
 //it under the terms of the GNU General Public License as published by

@@ -2,11 +2,16 @@
 
 By contributing to this project, you agree that your contributions will be licensed under this projects current license and you agree to the terms and conditions in this projects license.
 
-You should also add your name into the copyright header of the file you contribute to or add one if it does not exist for example:
+- If your not a big code writter you can still help by documenting code if you understand it or by cleaning up or writing documents
+
+## Code Requirements
+
+- If you make a new file make sure to add this GPL3 license header:
 
 ```License
-//Copyright (C) <2023> <Your name>
-//                                       <- add another line here if there is multiple contributers - Copyright (C) <2023> <Your name>
+//This file contains code for interstellar OS - <https://github.com/interstellarfrog/interstellar>
+//Copyright (C) 2023  contributors of the interstellar OS project
+//
 //This program is free software: you can redistribute it and/or modify
 //it under the terms of the GNU General Public License as published by
 //the Free Software Foundation, either version 3 of the License, or
@@ -20,10 +25,6 @@ You should also add your name into the copyright header of the file you contribu
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
-
-- If your not a big code writter you can still help by documenting code if you understand it or by cleaning up or writing documents
-
-## Code Requirements
 
 - Write all code possible in rust - I am trying to keep the github code usage close to 100% for rust, for assembly use `core::arch::asm!` or `core::arch::global_asm!`
 
