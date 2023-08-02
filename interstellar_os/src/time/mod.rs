@@ -15,25 +15,70 @@
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use conquer_once::spin::OnceCell;
+use core::{sync::atomic::AtomicU64, time::Duration};
 use spinning_top::Spinlock;
 
-pub static TIMER: OnceCell<Spinlock<Timer>> = OnceCell::uninit();
+/// This is the timer count for the PIT timer this is incremented every tick
+///
+/// # Fun Fact
+///
+/// This will take approx 5.85 Billion years to overflow at a 10ms per second tick
+pub static mut PIT_COUNT: AtomicU64 = AtomicU64::new(0);
 
+/// This is the timer count for the LAPIC timer this is incremented every tick
+///
+/// # Fun Fact
+///
+/// This will take approx 5.85 Billion years to overflow at a 10ms per second tick
+pub static mut APIC_COUNT: AtomicU64 = AtomicU64::new(0);
+
+pub static mut GLOBAL_TIMER: OnceCell<Spinlock<Timer>> = OnceCell::uninit();
+
+/// initialize the global timer
 pub fn init() {
-    TIMER.init_once(|| Spinlock::new(Timer { count: 0 }));
+    unsafe { GLOBAL_TIMER.init_once(|| Spinlock::new(Timer::new())) };
 }
 
 pub struct Timer {
-    count: u64,
+    /// This is the start timer count for the timer
+    ///
+    /// # Fun Fact
+    ///
+    /// This will take approx 5.85 Billion years to overflow at a 10ms per second tick
+    start_count: u64,
 }
 
 impl Timer {
-    /// Increment the count by 1
-    pub fn tick(&mut self) {
-        self.count += 1;
+    #[allow(clippy::new_without_default)]
+    // Create a new Timer and record the start time
+    pub fn new() -> Timer {
+        let start_count = unsafe { APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
+        Timer { start_count }
     }
-    // Returns the current timer count
-    pub fn get_count(&self) -> u64 {
-        self.count
+
+    // Get the elapsed time in milliseconds
+    pub fn elapsed(&self) -> Duration {
+        let current_count = unsafe { APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
+        let elapsed_ticks = current_count - self.start_count;
+        Duration::from_millis(elapsed_ticks * 10) // Assuming that the timer increments every 10ms
+    }
+
+    pub fn sleep(self, duration: Duration) {
+        // Calculate the number of timer ticks for the desired duration
+        let ticks = duration.as_millis() / 10; // Assuming that the timer increments every 10ms
+
+        // Get the current timer count
+        let start_count = unsafe { APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
+
+        // Calculate the target count
+        let target_count = start_count + ticks as u64;
+
+        // Wait until the timer count reaches the target
+        loop {
+            let current_count = unsafe { APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
+            if current_count >= target_count {
+                break;
+            }
+        }
     }
 }

@@ -17,9 +17,7 @@
 use core::panic;
 
 use crate::{other::info::BOOT_INFO, other::log::LOGGER};
-use acpi::{
-    sdt::Signature, AcpiHandler, AcpiTables, AmlTable, HpetInfo, PciConfigRegions, PhysicalMapping,
-};
+use acpi::{AcpiHandler, AcpiTables, AmlTable, HpetInfo, PciConfigRegions, PhysicalMapping};
 use alloc::vec::Vec;
 use aml::{AmlContext, AmlError};
 use os_units::Bytes;
@@ -88,23 +86,19 @@ pub fn init(rsdp_address: PhysAddr) -> AcpiTables<AcpiHandlerImpl> {
         unsafe { AcpiTables::from_rsdp(AcpiHandlerImpl, rsdp_address.as_u64() as usize) };
 
     match acpi_tables {
-        Ok(mut acpi_tables) => {
-            let _hpet_info = HpetInfo::new(&acpi_tables).unwrap();
-
-            for sdt in &acpi_tables.sdts {
-                if sdt.0 == &Signature::MADT {}
-            }
-
-            let dsdt = acpi_tables.dsdt.take().unwrap();
+        Ok(acpi_tables) => {
+            let _hpet_info = HpetInfo::new(&acpi_tables);
 
             let _pci = PciConfigRegions::new(&acpi_tables);
 
-            let mut aml_tables = alloc::vec![&dsdt];
+            let dsdt = acpi_tables.dsdt.as_ref();
+
+            let mut aml_tables = alloc::vec![dsdt];
 
             let ssdts = &acpi_tables.ssdts;
 
             for ssdt in ssdts {
-                aml_tables.append(&mut alloc::vec![ssdt]);
+                aml_tables.append(&mut alloc::vec![Some(ssdt)]);
             }
 
             let _platform_info = acpi::platform::PlatformInfo::new(&acpi_tables);
@@ -285,7 +279,7 @@ impl aml::Handler for OsAmlHandler {
 /// # Warning
 ///
 /// Only call this function one time with all AML tables
-fn parse_aml_tables(aml_tables: Vec<&AmlTable>) -> Result<AmlContext, AmlError> {
+fn parse_aml_tables(aml_tables: Vec<Option<&AmlTable>>) -> Result<AmlContext, AmlError> {
     LOGGER
         .get()
         .unwrap()
@@ -295,7 +289,7 @@ fn parse_aml_tables(aml_tables: Vec<&AmlTable>) -> Result<AmlContext, AmlError> 
         alloc::boxed::Box::new(OsAmlHandler {}),
         aml::DebugVerbosity::All,
     );
-    for aml_table in aml_tables {
+    for aml_table in aml_tables.into_iter().flatten() {
         LOGGER.get().unwrap().lock().trace(
             "Making AML bytecode stream from raw pointer",
             file!(),

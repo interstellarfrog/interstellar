@@ -14,12 +14,14 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/// The Code In This File Is For Handling CPU Exceptions And Interrupts - 0 Division errors etc. And legacy Keyboard Input etc.
+/// The Code In This File Is For Handling CPU Exceptions And Interrupts - 0 Division errors etc. And Timers And Legacy Keyboard Input etc.
 use crate::{gdt, other::log::LOGGER};
+use acpi::platform::interrupt::Polarity;
 use acpi::PlatformInfo;
+use alloc::format;
 use handlers::*;
 use lazy_static::lazy_static;
-use x86_64::structures::idt::InterruptDescriptorTable;
+use x86_64::{instructions::port::Port, structures::idt::InterruptDescriptorTable};
 
 use x86_64::PhysAddr;
 
@@ -71,8 +73,8 @@ Vector |Exception/Interrupt |Mnemonic |Cause
 29 |VMM Communication Exception |#VC |Virtualization event
 30 |Security Exception |#SX |Security-sensitive event in host
 31 |Reserved |—
-0–255 |External Interrupts (Maskable) |#INTR |External interrupts
-0–255 |Software Interrupts |— |INTn instruction
+32–255 |External Interrupts (Maskable) |#INTR |External interrupts
+32–255 |Software Interrupts |— |INTn instruction
 */
 
 // Lazy-static IDT (Interrupt Descriptor Table) for handling interrupts
@@ -122,15 +124,13 @@ lazy_static! {
         //#                APIC Interrupts
         //################################################
 
-        idt[IoApicInterruptIndex::Pit.as_usize()].set_handler_fn(pit_interrupt_handler);
-        idt[IoApicInterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler);
-        idt[IoApicInterruptIndex::Mouse.as_usize()].set_handler_fn(mouse_interrupt_handler);
+        idt[InterruptIndex::Pit.as_usize()].set_handler_fn(pit_interrupt_handler); // 33
+        idt[InterruptIndex::Keyboard.as_usize()].set_handler_fn(keyboard_interrupt_handler); // 34
 
-        idt[LApicInterruptIndex::ApicError.as_usize()].set_handler_fn(error_interrupt_handler);
-        idt[LApicInterruptIndex::Timer.as_usize()].set_handler_fn(apic_timer_interrupt_handler);
-        idt[LApicInterruptIndex::Spurious.as_usize()].set_handler_fn(spurious_interrupt_handler);
-
-
+        idt[InterruptIndex::Mouse.as_usize()].set_handler_fn(mouse_interrupt_handler); // 45
+        idt[InterruptIndex::ApicError.as_usize()].set_handler_fn(error_interrupt_handler); // 46
+        idt[InterruptIndex::Timer.as_usize()].set_handler_fn(apic_timer_interrupt_handler); // 47
+        idt[InterruptIndex::Spurious.as_usize()].set_handler_fn(spurious_interrupt_handler); // 48
 
         idt
     };
@@ -160,45 +160,19 @@ pub fn init(acpi_platform_info: &PlatformInfo) {
             while (data.read() & 0x1) == 1 {}
         }
     }
+
     x86_64::instructions::interrupts::disable();
 
     IDT.load();
 
     if let InterruptModel::Apic(ref apic_info) = acpi_platform_info.interrupt_model {
+        unsafe { PICS.lock().disable() };
+
         init_lapic(apic_info);
 
         init_ioapic(apic_info);
 
-        // Enable PIT  - FIX ME!!!!!
-
-        //let mut command_port = x86_64::instructions::port::Port::new(0x43);
-
-        //unsafe {
-        //    command_port.write(0b00110110u8); // set operating mode 2
-        //}
-
-        //let mut data_port = x86_64::instructions::port::Port::new(0x40);
-
-        //unsafe {
-        //    data_port.write((1193 & 0xFF) as u8); // lower byte of reload value
-        //    data_port.write((1193 >> 8) as u8); // upper byte of reload value
-        //}
-
-        //unsafe { LAPIC.get().unwrap().lock().disable_timer() };
-
-        //unsafe { LAPIC.get().unwrap().lock().set_timer_initial(1) };
-
-        //unsafe { LAPIC.get().unwrap().lock().enable_timer() };
-
-        // Wait for 10 ms using PIT
-
-        // disable timer
-
-        // check how many ticks the timer executed
-
-        // set new timer settings
-
-        // enable timer
+        init_lapic_timer();
     } else {
         LOGGER
             .get()
@@ -217,6 +191,11 @@ pub fn init(acpi_platform_info: &PlatformInfo) {
     LOGGER.get().unwrap().lock().info("Enabling interrupts");
 
     x86_64::instructions::interrupts::enable(); // Enable Interrupts
+
+    LOGGER.get().unwrap().lock().info(&format!(
+        "Interrupts Enabled?: {}",
+        x86_64::instructions::interrupts::are_enabled()
+    ));
 }
 
 fn init_lapic(apic_info: &ApicInfo) {
@@ -227,10 +206,6 @@ fn init_lapic(apic_info: &ApicInfo) {
         .trace("Initializing LAPIC", file!(), line!());
 
     LOGGER.get().unwrap().lock().info("Initializing LAPIC");
-    unsafe {
-        // Disable PIC so it doesn't interfere with LAPIC/IOPICs
-        PICS.lock().disable();
-    }
 
     LAPIC_BASE.init_once(|| apic_info.local_apic_address);
     LAPIC.init_once(|| {
@@ -239,11 +214,11 @@ fn init_lapic(apic_info: &ApicInfo) {
 
         let mut lapic = LocalApicBuilder::new()
             .set_xapic_base(apic_virtual_address.as_u64())
-            .spurious_vector(LApicInterruptIndex::Spurious.as_usize())
-            .error_vector(LApicInterruptIndex::ApicError.as_usize())
+            .spurious_vector(InterruptIndex::Spurious.as_usize())
+            .error_vector(InterruptIndex::ApicError.as_usize())
             .timer_divide(TimerDivide::Div16)
-            .timer_vector(LApicInterruptIndex::Timer.as_usize())
-            .timer_initial(10_000_000)
+            .timer_vector(InterruptIndex::Timer.as_usize())
+            .timer_initial(u32::MAX)
             .build()
             .unwrap_or_else(|e| panic!("{}", e));
 
@@ -263,14 +238,77 @@ fn init_lapic(apic_info: &ApicInfo) {
     });
 }
 
+/// This function waits for an amount of time using another timer say 10ms,
+///
+/// Then records how much the count of the LAPIC timer has been deincremented by to get the rough value
+/// of what we need to set the count to to generate an interrupt every 10ms
+fn init_lapic_timer() {
+    x86_64::instructions::interrupts::enable();
+
+    LOGGER
+        .get()
+        .unwrap()
+        .lock()
+        .info("Initializing LAPIC Timer");
+
+    unsafe { LAPIC.get().unwrap().lock().disable_timer() };
+
+    unsafe { crate::time::APIC_COUNT.store(0, core::sync::atomic::Ordering::SeqCst) };
+    unsafe { crate::time::PIT_COUNT.store(0, core::sync::atomic::Ordering::SeqCst) };
+
+    unsafe { LAPIC.get().unwrap().lock().set_timer_initial(u32::MAX) };
+
+    unsafe { LAPIC.get().unwrap().lock().enable_timer() };
+
+    // Wait for 10 ms using PIT
+
+    loop {
+        if unsafe { crate::time::PIT_COUNT.load(core::sync::atomic::Ordering::SeqCst) } != 0 {
+            break;
+        }
+    }
+
+    // disable timer
+    unsafe { LAPIC.get().unwrap().lock().disable_timer() };
+
+    // check how much the timer counted down
+    let count = unsafe { LAPIC.get().unwrap().lock().timer_current() };
+
+    LOGGER
+        .get()
+        .unwrap()
+        .lock()
+        .info(&format!("LAPIC count after 10ms: {} ", count));
+
+    let new_count = u32::MAX - count;
+
+    LOGGER
+        .get()
+        .unwrap()
+        .lock()
+        .info(&format!("New count: {}", new_count));
+
+    // set new timer settings
+    unsafe {
+        LAPIC
+            .get()
+            .unwrap()
+            .lock()
+            .set_timer_initial(u32::MAX - count)
+    };
+
+    // enable timer
+    unsafe { LAPIC.get().unwrap().lock().enable_timer() };
+}
+
 fn init_ioapic(apic_info: &ApicInfo) {
     LOGGER
         .get()
         .unwrap()
         .lock()
-        .trace("Initializing IOPIC", file!(), line!());
+        .trace("Initializing IOAPIC", file!(), line!());
 
-    LOGGER.get().unwrap().lock().info("Initializing IOPIC");
+    LOGGER.get().unwrap().lock().info("Initializing IOAPIC");
 
     IOAPIC.init_once(|| {
         let lapic = LAPIC
@@ -294,21 +332,25 @@ fn init_ioapic(apic_info: &ApicInfo) {
 
             register_io_apic_entry(
                 &mut ioapic,
+                apic_info,
                 lapic.id() as u8,
-                IoApicInterruptIndex::Pit.as_u8(),
+                InterruptIndex::Pit.as_u8(),
                 IoApicTableIndex::Pit.into(),
             );
 
             register_io_apic_entry(
                 &mut ioapic,
+                apic_info,
                 lapic.id() as u8,
-                IoApicInterruptIndex::Keyboard.as_u8(),
+                InterruptIndex::Keyboard.as_u8(),
                 IoApicTableIndex::Keyboard.into(),
             );
+
             register_io_apic_entry(
                 &mut ioapic,
+                apic_info,
                 lapic.id() as u8,
-                IoApicInterruptIndex::Mouse.as_u8(),
+                InterruptIndex::Mouse.as_u8(),
                 IoApicTableIndex::Mouse.into(),
             );
         }
@@ -318,15 +360,101 @@ fn init_ioapic(apic_info: &ApicInfo) {
         Spinlock::new(ioapic)
     });
 
+    const PIT_CMD_PORT: u16 = 0x43;
+    const PIT_CH0_PORT: u16 = 0x40;
+    const PIT_FREQUENCY: u32 = 1193182; // PIT oscillator frequency
+    const DESIRED_FREQUENCY: u32 = 100; // desired interrupt frequency - 10ms
+
+    // calculate the PIT count value
+    let count = PIT_FREQUENCY / DESIRED_FREQUENCY;
+
+    let mut cmd_port = Port::new(PIT_CMD_PORT);
+    let mut ch0_port = Port::new(PIT_CH0_PORT);
+
+    // send command byte to the PIT command port
+    // 0x36 = 00 (channel 0) 11 (access mode: lobyte/hibyte) 011 (mode 3: square wave generator) 0 (16-bit binary)
+    unsafe { cmd_port.write(0x36u8) };
+
+    // send count value to channel 0 data port
+    unsafe {
+        ch0_port.write((count & 0xFF) as u8); // low byte
+        ch0_port.write(((count >> 8) & 0xFF) as u8); // high byte
+    }
+
     LOGGER.get().unwrap().lock().info("IOAPIC initialized");
 }
 
-fn register_io_apic_entry(ioapic: &mut IoApic, lapic_id: u8, int_index: u8, irq_index: u8) {
+fn register_io_apic_entry(
+    ioapic: &mut IoApic,
+    apic_info: &ApicInfo,
+    lapic_id: u8,
+    int_index: u8,
+    pic_irq_index: u8,
+) {
     let mut entry = RedirectionTableEntry::default();
     entry.set_mode(x2apic::ioapic::IrqMode::Fixed);
     entry.set_dest(lapic_id);
     entry.set_vector(int_index);
-    entry.set_flags(IrqFlags::LEVEL_TRIGGERED | IrqFlags::LOW_ACTIVE | IrqFlags::MASKED);
+
+    let mut irq_index = pic_irq_index;
+
+    let mut polarity: Option<IrqFlags> = None;
+
+    let mut trigger_mode: Option<IrqFlags> = None;
+
+    let mut interrupt_remaped: bool = false;
+
+    for iso in &apic_info.interrupt_source_overrides {
+        if iso.isa_source == pic_irq_index {
+            interrupt_remaped = true;
+
+            irq_index = iso.global_system_interrupt as u8;
+            match iso.polarity {
+                Polarity::ActiveHigh => {
+                    polarity = None;
+                }
+                Polarity::ActiveLow => {
+                    polarity = Some(IrqFlags::LOW_ACTIVE);
+                }
+                Polarity::SameAsBus => {
+                    polarity = Some(IrqFlags::LOW_ACTIVE);
+                }
+            }
+
+            match iso.trigger_mode {
+                acpi::platform::interrupt::TriggerMode::Edge => {
+                    trigger_mode = None;
+                }
+                acpi::platform::interrupt::TriggerMode::Level => {
+                    trigger_mode = Some(IrqFlags::LEVEL_TRIGGERED);
+                }
+                acpi::platform::interrupt::TriggerMode::SameAsBus => {
+                    // This is unreliable
+                    trigger_mode = Some(IrqFlags::LEVEL_TRIGGERED);
+                }
+            }
+        }
+    }
+
+    // remap has not occured
+    if !interrupt_remaped {
+        // Just set to low active and level triggered, if you need a specific mapping add a case checking the pic_irq_index for it
+        polarity = Some(IrqFlags::LOW_ACTIVE);
+        trigger_mode = Some(IrqFlags::LEVEL_TRIGGERED);
+    }
+
+    if let Some(polarity) = polarity {
+        if let Some(trigger_mode) = trigger_mode {
+            entry.set_flags(polarity | trigger_mode | IrqFlags::MASKED);
+        } else {
+            entry.set_flags(polarity | IrqFlags::MASKED);
+        }
+    } else if let Some(trigger_mode) = trigger_mode {
+        entry.set_flags(trigger_mode | IrqFlags::MASKED);
+    } else {
+        entry.set_flags(IrqFlags::MASKED);
+    }
+
     unsafe {
         ioapic.set_table_entry(irq_index, entry);
         ioapic.enable_irq(irq_index);

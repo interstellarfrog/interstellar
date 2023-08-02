@@ -21,7 +21,11 @@ use x86_64::{
     structures::idt::{InterruptStackFrame, PageFaultErrorCode},
 };
 
-use crate::{drivers::screen::framebuffer::FRAMEBUFFER, other::log::LOGGER};
+use crate::other::log::LOGGER;
+
+//###############################################
+//        Exception handlers
+//###############################################
 
 /// Handler for the divide by zero exception
 pub extern "x86-interrupt" fn divide_by_zero_fault_handler(stack_frame: InterruptStackFrame) {
@@ -143,7 +147,7 @@ pub extern "x86-interrupt" fn page_fault_handler(
 
 /// Handler for the x87-floating-point exception
 pub extern "x86-interrupt" fn x87_floating_point_handler(stack_frame: InterruptStackFrame) {
-    panic!("EXCEPTION: PAGE FAULT\n{:#?}", stack_frame);
+    panic!("EXCEPTION: x87-FLOATING-POINT\n{:#?}", stack_frame);
 }
 
 /// Handler for the alignment-check exception
@@ -187,73 +191,36 @@ pub extern "x86-interrupt" fn security_exception_fault_handler(
 }
 
 //###############################################
-//        Local APIC interrupt handlers
+//        Interrupt Indexes
 //###############################################
 
-pub extern "x86-interrupt" fn error_interrupt_handler(stack_frame: InterruptStackFrame) {
-    LOGGER
-        .get()
-        .unwrap()
-        .lock()
-        .error(&alloc::format!("APIC ERROR: {:#?}", stack_frame));
-    unsafe {
-        super::LAPIC.get().unwrap().lock().end_of_interrupt();
-    }
-}
+pub const IOAPIC_INTERRUPT_INDEX_OFFSET: u8 = 32;
 
-pub extern "x86-interrupt" fn apic_timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
-    unsafe { crate::time::TIMER.get().unwrap().force_unlock() }
-    crate::time::TIMER.get().unwrap().lock().tick();
+pub const LAPIC_INTERRUPT_INDEX_OFFSET: u8 = 46;
 
-    unsafe {
-        super::LAPIC.get().unwrap().lock().end_of_interrupt();
-    } // Tell It We Are Done
-}
-
-pub extern "x86-interrupt" fn spurious_interrupt_handler(_stack_frame: InterruptStackFrame) {
-    unsafe {
-        super::LAPIC.get().unwrap().lock().end_of_interrupt();
-    }
-}
-
-//###############################################
-//        IOAPIC interrupt handlers
-//###############################################
-
-pub const IOAPIC_INTERRUPT_INDEX_OFFSET: u8 = 40;
-
-pub const LAPIC_INTERRUPT_INDEX_OFFSET: u8 = 0x90;
-
-/// Enum representing the indices of different IOAPIC interrupts
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
-pub enum IoApicInterruptIndex {
-    _IoApic = IOAPIC_INTERRUPT_INDEX_OFFSET,    // 40
-    Pit,                                        // 41
-    Keyboard,                                   // 42
-    Mouse = IOAPIC_INTERRUPT_INDEX_OFFSET + 12, // 53
+pub enum InterruptIndex {
+    _IoApic = IOAPIC_INTERRUPT_INDEX_OFFSET,  // 32
+    Pit,                                      // 0/33
+    Keyboard,                                 // 1/34
+    _CascadeForSecondPic,                     // 2/35
+    _SerialPort2Controller,                   // 3/36
+    _SerialPort1Controller,                   // 4/37
+    _ParallelPort2And3OrSoundCard,            // 5/38
+    _FloppyDiskController,                    // 6/39
+    _ParallelPort1OrPrinter,                  // 7/40
+    _RTC,                                     // 8/41
+    _GeneralIOAndSound,                       // 9/42
+    _ACPI,                                    // 10/43
+    _USBAndNetwork,                           // 11/44
+    Mouse,                                    // 12/45
+    ApicError = LAPIC_INTERRUPT_INDEX_OFFSET, // 46
+    Timer,                                    // 47
+    Spurious,                                 // 48
 }
 
-impl IoApicInterruptIndex {
-    pub fn as_u8(self) -> u8 {
-        self as u8
-    }
-
-    pub fn as_usize(self) -> usize {
-        usize::from(self.as_u8())
-    }
-}
-
-/// Enum representing the indices of different LAPIC interrupts
-#[derive(Debug, Clone, Copy)]
-#[repr(u8)]
-pub enum LApicInterruptIndex {
-    ApicError = LAPIC_INTERRUPT_INDEX_OFFSET, // 144
-    Timer,                                    // 145
-    Spurious,                                 // 146
-}
-
-impl LApicInterruptIndex {
+impl InterruptIndex {
     pub fn as_u8(self) -> u8 {
         self as u8
     }
@@ -267,7 +234,7 @@ impl LApicInterruptIndex {
 #[repr(u8)]
 pub enum IoApicTableIndex {
     // These can be different depending on the UEFI software but most map them 1:1 the same as the PICS
-    Pit = 0,
+    Pit = 0, // For some reason this is 2 instead of 0 for QEMUs IOAPIC but we use the interrupt source overide table entries to remap it
     Keyboard = 1,
     Mouse = 12,
 }
@@ -290,16 +257,70 @@ pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
 pub static PICS: spin::Mutex<ChainedPics> =
     spin::Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET) });
 
+/// Handler for the PIT interrupt
 pub extern "x86-interrupt" fn pit_interrupt_handler(_stack_frame: InterruptStackFrame) {
-    //serial_println!("PIT TIMER INTERRUPT!!!!");
-    unsafe { FRAMEBUFFER.get().unwrap().force_unlock() };
-
-    //print!(".");
+    unsafe { crate::time::PIT_COUNT.fetch_add(1, core::sync::atomic::Ordering::SeqCst) };
 
     unsafe {
-        super::LAPIC.get().unwrap().lock().end_of_interrupt();
+        if let Some(mut apic) = super::LAPIC.get().unwrap().try_lock() {
+            apic.end_of_interrupt();
+        } else {
+            super::LAPIC.get().unwrap().force_unlock();
+            super::LAPIC.get().unwrap().lock().end_of_interrupt();
+        }
     } // Tell It We Are Done
 }
+
+//###############################################
+//        Local APIC interrupt handlers
+//###############################################
+
+pub extern "x86-interrupt" fn error_interrupt_handler(stack_frame: InterruptStackFrame) {
+    LOGGER
+        .get()
+        .unwrap()
+        .lock()
+        .error(&alloc::format!("APIC ERROR: {:#?}", stack_frame));
+    unsafe {
+        if let Some(mut apic) = super::LAPIC.get().unwrap().try_lock() {
+            apic.end_of_interrupt();
+        } else {
+            super::LAPIC.get().unwrap().force_unlock();
+            super::LAPIC.get().unwrap().lock().end_of_interrupt();
+        }
+    }
+}
+
+pub extern "x86-interrupt" fn apic_timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    unsafe { crate::time::APIC_COUNT.fetch_add(1, core::sync::atomic::Ordering::SeqCst) };
+    unsafe {
+        if let Some(mut apic) = super::LAPIC.get().unwrap().try_lock() {
+            apic.end_of_interrupt();
+        } else {
+            super::LAPIC.get().unwrap().force_unlock();
+            super::LAPIC.get().unwrap().lock().end_of_interrupt();
+        }
+    }
+}
+
+pub extern "x86-interrupt" fn spurious_interrupt_handler(stack_frame: InterruptStackFrame) {
+    LOGGER.get().unwrap().lock().error(&alloc::format!(
+        "SPURIOUS HARDWARE ERROR: {:#?}",
+        stack_frame
+    ));
+    unsafe {
+        if let Some(mut apic) = super::LAPIC.get().unwrap().try_lock() {
+            apic.end_of_interrupt();
+        } else {
+            super::LAPIC.get().unwrap().force_unlock();
+            super::LAPIC.get().unwrap().lock().end_of_interrupt();
+        }
+    }
+}
+
+//###############################################
+//        IOAPIC interrupt handlers
+//###############################################
 
 /// Handler for the keyboard interrupt
 pub extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {

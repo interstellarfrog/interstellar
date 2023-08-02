@@ -1,18 +1,29 @@
 add double buffering - write to one memory addr then switch with main framebuffer (so it does not show the pixels half way through writing to the addr)
 add more tests
+make multiproccesing - SMP
 fix QEMU UEFI booting from clearing the console causing the tests in the testing framework not show right
 Port a doom engine - not that hard using doom generic
 make function to power of machine using ACPI
-configure APIC timer and PIT
-make measurable time frames for benchmarking and sleep(seconds: 0.5)
 make virtual file system
 get GDB to work properly
 make SATA driver and connect to VFS
 enter user mode with init program
-make scheduler for user mode - make PCB (process controll block) and every timer interrupt switch task and registers (depending on usage and priority levels) 
-make multiproccesing - SMP
+make schedular for user mode - make PCB (process controll block) and every LAPIC timer interrupt switch task and registers (depending on usage and priority levels) 
+maybe add kernel stack unwinding - include OS function addrs and names in initrd then unwind the stack work out the ASLR offset and calculate the correct addresses then retrieve the function names
 Look into AVX
 implement system calls
+Make a starter GUI
+Make A secure login screen using Hashing - New Password: 1. get new password 2. hash 3. store hash in file with highest permissions ,Login With Password: 1. hash login password 2. get correct password hash 3. Compare  - make sure to drop(password) before starting any user processes
+Make An EXE Executor
+add user mode stack unwinding - walk the stack frames on panic translating the return addresses to function names
+PCI driver
+NIC driver
+Port NVIDIA/AMD GPU DRIVERS
+Port rust compiler
+make programs - games, web browser
+
+
+
 Make A GUI framework - make a compatible X11 server in rust / or maybe we can just replace each GUI lib - probably the hardest thing to do in the whole OS
 
 Fake compatible X11 server {
@@ -27,7 +38,6 @@ Our goal is to replicate this protocol to intercept the communication between th
 Check documentation and specifications about the X11 protocol.
 Create the System Call to Write to the Framebuffer: The system call should take the parameters to write pixels on the display (i.e., coordinate and color information) and execute the operation.
 Create a Simulation of the X Window Server: This will be responsible for parsing the X11 protocol commands from the application and translating them into a series of system calls to write to the framebuffer.
-
 
 
 Simulate X Window Server from User Mode:
@@ -60,13 +70,3 @@ Using the existing X11 server and libraries {
 
     then from there we can develop the GUI using the X11 server
 }
-
-
-
-Make A secure login screen using Hashing - New Password: 1. get new password 2. hash 3. store hash in file with highest permissions ,Login With Password: 1. hash login password 2. get correct password hash 3. Compare  - make sure to drop(password) before starting any user processes
-Make An EXE Executor
-PCI driver
-NIC driver
-Port NVIDIA/AMD GPU DRIVERS
-Port rust compiler
-make programs - games, web browser

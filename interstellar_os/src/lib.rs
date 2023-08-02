@@ -227,7 +227,7 @@ pub fn init(boot_info: &'static mut BI) {
     }
 
     if tls_template.is_none() {
-        LOGGER.get().unwrap().lock().warn("TLS Template Not Found");
+        LOGGER.get().unwrap().lock().info("TLS Template Not Found");
     }
 
     LOGGER.get().unwrap().lock().info("Logger initialized");
@@ -260,14 +260,13 @@ pub fn init(boot_info: &'static mut BI) {
     // Initialize The Global Descriptor Table
     gdt::init();
 
-    // Initialize The Time Struct
-    time::init();
-
     // Parse The ACPI Tables
     let acpi_tables = acpi::init(PhysAddr::new(boot_info.rsdp_addr.into_option().unwrap()));
 
     // Create IDT And APIC Structures And Enable Interrupts
     interrupts::init(&acpi_tables.platform_info().unwrap());
+
+    time::init();
 
     // Enable The PS/2 Keyboard
     drivers::hid::keyboard::init();

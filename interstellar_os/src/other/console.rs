@@ -47,6 +47,7 @@ pub fn handle_console(line: &str) -> bool {
                 "divide" => divide_command(args),
                 "power" => power_command(args),
                 "mem" => check_memory(),
+                "time" => time_command(args),
                 "color" => change_color(args),
                 "bgcolor" => change_background_color(args),
                 "colour" => change_color(args),
@@ -238,6 +239,40 @@ fn check_memory() {
         MEMORY.get().unwrap().lock().total_used_mem_kilobytes()
     );
     println!("Used bytes: {}", MEMORY.get().unwrap().lock().used_memory);
+}
+
+fn time_command(args: &[&str]) {
+    if args.is_empty() || args.len() != 1 {
+        println!(
+            "\nInvalid Arguments. Example Usage: time <boot>   - Tip Use time help or time /?"
+        );
+    } else {
+        let arg = args[0];
+
+        if arg == "/?" || arg == "help" {
+            println!(
+                "\nExample Usage: time <boot>\n\nAvailable Time Commands:\n
+            boot"
+            );
+            return;
+        }
+        if arg == "boot" {
+            let boot_time = unsafe { crate::time::GLOBAL_TIMER.get().unwrap().lock().elapsed() };
+            if boot_time.as_secs() > 60 {
+                if (boot_time.as_secs() / 60) > 60 {
+                    println!("\nTime Since Boot: {} Hrs", (boot_time.as_secs() / 60) / 60);
+                } else {
+                    println!(
+                        "\nTime Since Boot: {} mins {}s",
+                        boot_time.as_secs() / 60,
+                        boot_time.as_secs() - ((boot_time.as_secs() / 60) * 60)
+                    );
+                }
+            } else {
+                println!("\nTime Since Boot: {}s", boot_time.as_secs());
+            }
+        }
+    }
 }
 
 /// Executes the "color" command.
