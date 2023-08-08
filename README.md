@@ -64,7 +64,7 @@ These are some hidden features you might be interested in:
 
 ![qemu1.png](images/qemu1.jpg)
 
-## v0.0.2 Running
+## v0.0.3 Running
 
 ![qemu2.png](images/qemu2.png)
 
