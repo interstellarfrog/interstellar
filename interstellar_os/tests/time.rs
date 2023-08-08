@@ -91,7 +91,6 @@ fn sleep() {
     }
 }
 
-
 #[test_case]
 fn elapsed() {
     LOGGER
@@ -109,5 +108,4 @@ fn elapsed() {
     if elapsed > 1.3 || elapsed < 0.7 {
         panic!("Timing should be close to 1 but was {}", elapsed)
     }
-
 }
