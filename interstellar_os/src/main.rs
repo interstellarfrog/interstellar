@@ -42,18 +42,19 @@ pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     use bootloader_api::config::*;
 
     let mut mappings = Mappings::new_default();
-    mappings.kernel_stack = Mapping::Dynamic;
-    mappings.boot_info = Mapping::Dynamic;
-    mappings.framebuffer = Mapping::Dynamic;
-    mappings.physical_memory = Some(Mapping::Dynamic);
-    mappings.page_table_recursive = None;
-    mappings.aslr = true;
-    mappings.dynamic_range_start = Some(0xFFFF_8000_0000_0000);
-    mappings.dynamic_range_end = Some(0xFFFF_FFFF_FFFF_FFFF);
+    //mappings.kernel_stack = Mapping::Dynamic;
+    //mappings.boot_info = Mapping::Dynamic;
+    //mappings.framebuffer = Mapping::Dynamic;
+    mappings.physical_memory = Some(Mapping::Dynamic); // This is very important do not disable
+
+    //mappings.page_table_recursive = None;
+    //mappings.aslr = true;
+    //mappings.dynamic_range_start = Some(0xFFFF_8000_0000_0000);
+    //mappings.dynamic_range_end = Some(0xFFFF_FFFF_FFFF_FFFF);
 
     let mut config = BootloaderConfig::new_default();
     config.mappings = mappings;
-    config.kernel_stack_size = 80 * 1024 * 128;
+    config.kernel_stack_size = 48 * 1024; // 48 Kib   decreasing this will cause undefined behavior
     config
 };
 

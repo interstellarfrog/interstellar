@@ -1,15 +1,14 @@
 [package]
 name = "interstellar_os_builder"
 description = "This is used to run/build interstellar_os"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["interstellarfrog"]
 
 [build-dependencies]
-bootloader = { git = "https://github.com/rust-osdev/bootloader.git", package = "bootloader", version = "0.11.4" }
-bootloader_boot_config = { git = "https://github.com/rust-osdev/bootloader.git", package = "bootloader-boot-config", version = "0.11.4" }
+bootloader = { git = "https://github.com/rust-osdev/bootloader.git", package = "bootloader", version = "0.11.*" }
+bootloader_boot_config = { git = "https://github.com/rust-osdev/bootloader.git", package = "bootloader-boot-config", version = "0.11.*" }
 interstellar_os = { path = "interstellar_os", artifact = "bin", target = "x86_64-unknown-none" } 
-walkdir = "2.3.3"
 
 
 [dependencies]

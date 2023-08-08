@@ -83,6 +83,7 @@ fn main() {
 
     qemu_cmd.arg("-serial").arg("stdio"); // Redirect Serial To STDIO
     qemu_cmd.arg("-cpu").arg("max"); // Enables all features supported by the accelerator in the current host; Needed for RDSEED
+    qemu_cmd.arg("-smp").arg("3");
     qemu_cmd.arg("-m").arg("1G,slots=3,maxmem=4G"); // Set Memory Size
 
     println!("\nStarting QEMU");

@@ -1,72 +1,30 @@
-add double buffering - write to one memory addr then switch with main framebuffer (so it does not show the pixels half way through writing to the addr)
-add more tests
+#| Note These Are All In Order Of What I Am Working On - Also Do Not Start On User Space Yet
+
+IMPORTANT -- |
+
 make multiproccesing - SMP
-fix QEMU UEFI booting from clearing the console causing the tests in the testing framework not show right
-Port a doom engine - not that hard using doom generic
-make function to power of machine using ACPI
-make virtual file system
-get GDB to work properly
-make SATA driver and connect to VFS
+add more tests
+test on real hardware and double check the timings are correct as QEMU may be giving incorrect timings
 enter user mode with init program
-make schedular for user mode - make PCB (process controll block) and every LAPIC timer interrupt switch task and registers (depending on usage and priority levels) 
-maybe add kernel stack unwinding - include OS function addrs and names in initrd then unwind the stack work out the ASLR offset and calculate the correct addresses then retrieve the function names
-Look into AVX
+make schedular for user mode - make PCB (process controll block) and every LAPIC timer interrupt switch task and registers (depending on usage and priority levels)
 implement system calls
-Make a starter GUI
-Make A secure login screen using Hashing - New Password: 1. get new password 2. hash 3. store hash in file with highest permissions ,Login With Password: 1. hash login password 2. get correct password hash 3. Compare  - make sure to drop(password) before starting any user processes
-Make An EXE Executor
-add user mode stack unwinding - walk the stack frames on panic translating the return addresses to function names
+move drivers to user mode
+make virtual file system
+make SATA driver and connect to VFS
+make scalable fonts - the current font is locked at a certain pixel size and is blocky looking and we need scalable fonts for a GUI
+implement Unix Domain Sockets - type of IPC that uses memory locations
+Make a starter GUI using the Unix Domain Sockets to communicate with the kernel
+Port a doom engine and run it inside of a GUI window - not that hard using doom generic
+Make A secure login screen using Hashing - Set New Password: 1. get new password 2. hash 3. store hash in file with highest permissions, Login With Password: 1. hash login password 2. get correct password hash 3. Compare  - make sure to drop(password) before starting any user processes
+make function to power of machine using ACPI
 PCI driver
-NIC driver
-Port NVIDIA/AMD GPU DRIVERS
+NIC drivers - there is drivers in the linux kernel we can use for a reference - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/net/ethernet a good starter driver that can also be used with QEMU is located here: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/net/ethernet/realtek/8139too.c
 Port rust compiler
-make programs - games, web browser
+make programs - games, web browser - for testing purposes
+Port NVIDIA/AMD GPU DRIVERS - im not going to try to write GPU drivers from scratch with next to 0 info about the workings so we dont really have a choice
 
+NOT IMPORTANT -- |
 
-
-Make A GUI framework - make a compatible X11 server in rust / or maybe we can just replace each GUI lib - probably the hardest thing to do in the whole OS
-
-Fake compatible X11 server {
-
-Intercepting calls of Linux GUI app binaries, simulating the X window server, and implementing a system call to write to the framebuffer
-
-objectives:
-
-Replicate the X11 Protocol: The X Window System, X11, is a windowing system for bitmap displays. 
-GUI applications communicate with X servers using the X11 protocol. 
-Our goal is to replicate this protocol to intercept the communication between the app and the X server.
-Check documentation and specifications about the X11 protocol.
-Create the System Call to Write to the Framebuffer: The system call should take the parameters to write pixels on the display (i.e., coordinate and color information) and execute the operation.
-Create a Simulation of the X Window Server: This will be responsible for parsing the X11 protocol commands from the application and translating them into a series of system calls to write to the framebuffer.
-
-
-Simulate X Window Server from User Mode:
-
-should be able to interpret the incoming X11 protocol requests and translate them into calls to write windows ect whenever an app wants to draw something on the screen.
-
-listen on TCP/IP ports 6000 + extra monitor number
-
-Wait for connections from user processes
-
-}
-
-Create a whole X11 server in rust {
-    this would be a nightmare but would be worth it if it works in the end
-
-}
-
-Replace existing libraries {
-    instead of implementing a whole X11 server we could instead implement a few GUI frameworks and change the underlying X11 server communication to instead communicate with our renderer
-
-    this has some limitations though as apps that directly use X11 server communication without a library will not work (electron apps ect)
-}
-
-Using the existing X11 server and libraries {
-    this may be possible depending on the licenses
-
-    the X11 server uses system calls and interprocess communication so if we add the needed features it could just work?
-
-    then we can wrap the X11 libary functions in rust to make a X11 rust lib
-
-    then from there we can develop the GUI using the X11 server
-}
+fix QEMU UEFI booting from clearing the console causing the tests in the testing framework not to show right
+get GDB to work properly
+wireless internet - this is not needed until we have a bunch of ethernet drivers but here are the links to the linux wireless internet drivers for reference: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/net/wireless

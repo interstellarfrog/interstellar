@@ -14,6 +14,9 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use core::ops::Range;
+
+use alloc::format;
 use bootloader_api::info::{MemoryRegion, MemoryRegionKind, MemoryRegions};
 use conquer_once::spin::OnceCell;
 use lazy_static::lazy_static;
@@ -21,13 +24,15 @@ use spin::Mutex;
 use spinning_top::Spinlock;
 use x86_64::{
     structures::paging::{
-        page::PageRange, FrameAllocator, Mapper, OffsetPageTable, Page, PageSize, PageTable,
-        PageTableFlags, PhysFrame, Size4KiB, Translate,
+        mapper::MapToError, page::PageRange, FrameAllocator, Mapper, OffsetPageTable, Page,
+        PageSize, PageTable, PageTableFlags, PhysFrame, Size4KiB, Translate,
     },
     PhysAddr, VirtAddr,
 };
 
 use os_units::{Bytes, NumOfPages};
+
+use crate::other::log::LOGGER;
 
 lazy_static! {
     pub static ref MAPPER: Mutex<Option<OffsetPageTable<'static>>> = Mutex::new(None);
@@ -44,7 +49,7 @@ pub unsafe fn init(physical_memory_offset: u64, memory_regions: &'static mut Mem
     let level_4_table = active_level_4_table(physical_memory_offset);
     let table = OffsetPageTable::new(level_4_table, VirtAddr::new(physical_memory_offset));
 
-    let _ = MAPPER.lock().insert(table);
+    let _m = MAPPER.lock().insert(table);
 
     let mut total_memory = 0;
 
@@ -65,18 +70,6 @@ pub unsafe fn init(physical_memory_offset: u64, memory_regions: &'static mut Mem
     let frame_allocator = unsafe { BootInfoFrameAllocator::init(memory_regions) };
 
     let _ = FRAME_ALLOCATOR.lock().insert(frame_allocator);
-}
-
-unsafe fn active_level_4_table(physical_memory_offset: u64) -> &'static mut PageTable {
-    use x86_64::registers::control::Cr3;
-
-    let (level_4_table_frame, _) = Cr3::read();
-
-    let phys = level_4_table_frame.start_address();
-    let virt = VirtAddr::new(physical_memory_offset + phys.as_u64());
-    let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
-
-    &mut *page_table_ptr
 }
 
 pub struct Memory {
@@ -173,6 +166,33 @@ unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
     }
 }
 
+/// # Safety
+///
+/// You must provide a correct physical_memory_offset
+///
+pub unsafe fn active_level_4_table(physical_memory_offset: u64) -> &'static mut PageTable {
+    use x86_64::registers::control::Cr3;
+
+    let (level_4_table_frame, _) = Cr3::read();
+
+    let phys = level_4_table_frame.start_address();
+    let virt = VirtAddr::new(physical_memory_offset + phys.as_u64());
+    let page_table_ptr: *mut PageTable = virt.as_mut_ptr();
+
+    &mut *page_table_ptr
+}
+
+pub fn active_level_4_table_phys_addr() -> PhysAddr {
+    let page_table = MAPPER.lock().as_mut().unwrap().level_4_table() as *const _ as u64;
+
+    MAPPER
+        .lock()
+        .as_mut()
+        .unwrap()
+        .translate_addr(VirtAddr::new(page_table))
+        .expect("Level 4 table is not mapped")
+}
+
 fn search_free_addr_from(num_pages: NumOfPages<Size4KiB>, region: PageRange) -> Option<VirtAddr> {
     let mut cnt = 0;
     let mut start = None;
@@ -247,4 +267,52 @@ pub fn map_address(phys: PhysAddr, size: usize) -> VirtAddr {
             end: Page::containing_address(VirtAddr::new(0xFFFF_FFFF_FFFF_FFFF)),
         },
     )
+}
+
+pub fn identity_map(
+    frame: PhysFrame,
+    flags: Option<PageTableFlags>,
+) -> Result<(), MapToError<Size4KiB>> {
+    LOGGER
+        .get()
+        .unwrap()
+        .lock()
+        .serial_debug(&format!("identitiy mapping frame: {:x?}", frame));
+
+    let flags = flags.unwrap_or_else(|| {
+        PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE
+    });
+    let mut mapper = MAPPER.lock();
+    let mapper = mapper.as_mut().unwrap();
+
+    let mut allocator = FRAME_ALLOCATOR.lock();
+    let allocator = allocator.as_mut().unwrap();
+
+    unsafe {
+        mapper.identity_map(frame, flags, allocator)?.flush();
+    }
+    Ok(())
+}
+
+pub fn identity_map_address(
+    physical_address: u64,
+    flags: Option<PageTableFlags>,
+) -> Result<(), MapToError<Size4KiB>> {
+    identity_map(
+        PhysFrame::containing_address(PhysAddr::new(physical_address)),
+        flags,
+    )
+}
+
+pub fn identity_map_range(
+    range: Range<u64>,
+    flags: Option<PageTableFlags>,
+) -> Result<(), MapToError<Size4KiB>> {
+    for frame in PhysFrame::range_inclusive(
+        PhysFrame::containing_address(PhysAddr::new(range.start)),
+        PhysFrame::containing_address(PhysAddr::new(range.end - 1)),
+    ) {
+        identity_map(frame, flags)?;
+    }
+    Ok(())
 }

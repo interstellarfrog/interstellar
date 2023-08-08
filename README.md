@@ -1,6 +1,6 @@
 # interstellar OS
 
-![Building?](https://img.shields.io/github/actions/workflow/status/interstellarfrog/interstellar/rust.yml?logo=github) ![Issue Count](https://img.shields.io/github/issues/interstellarfrog/interstellar) ![Top Language Percentage](https://img.shields.io/github/languages/top/interstellarfrog/interstellar) ![Lines of Rust Code](https://img.shields.io/badge/Lines_of_Rust_Code-5256-yellow) ![GitHub All Releases Downloads](https://img.shields.io/github/downloads/interstellarfrog/interstellar/total) ![Stars](https://img.shields.io/github/stars/interstellarfrog/interstellar) ![License](https://img.shields.io/github/license/interstellarfrog/interstellar)
+![Building?](https://img.shields.io/github/actions/workflow/status/interstellarfrog/interstellar/rust.yml?logo=github) ![Issue Count](https://img.shields.io/github/issues/interstellarfrog/interstellar) ![Top Language Percentage](https://img.shields.io/github/languages/top/interstellarfrog/interstellar) ![Lines of Rust Code](https://img.shields.io/badge/Lines_of_Rust_Code-5499-yellow) ![GitHub All Releases Downloads](https://img.shields.io/github/downloads/interstellarfrog/interstellar/total) ![Stars](https://img.shields.io/github/stars/interstellarfrog/interstellar) ![License](https://img.shields.io/github/license/interstellarfrog/interstellar)
 
 This project is an Operating System written fully in Rust for x86 64bit (X86_64) that supports both UEFI and BIOS systems.
 
@@ -8,17 +8,40 @@ This project is an Operating System written fully in Rust for x86 64bit (X86_64)
 
 - My current objectives are to implement a user mode with a file system, GUI, and some simple games like noughts and crosses and chess. I also plan to port the Rust compiler and Python.
 
-- I plan to implement some system calls, then migrate over to Linux system calls to create a lightweight operating system written in Rust that also can run most linux programs that do not require a GUI window. (For GUI apps an X11 server and library would have to be implemented or for every already made graphics library we could translate there X11 calls to use our graphics library instead.)
+- I plan to implement some system calls, then migrate over to Linux system calls to create a lightweight operating system written in Rust that also can run most linux programs that do not require a GUI window (I might add support later).
 
-- I might make it so existing drivers for GPU's NVIDIA ect are downloaded and loaded based on what components are installed (if I legally can).
+- I do not plan to support other architectures yet as this would complicate the code significantly.
 
-- I am close to implemeting power management.
+## Roadmap
 
-- I do not plan to support other architectures as this would complicate the code significantly.
+- [x] Text output
+- [x] Memory management
+- [x] Interrupt and exception handling
+- [x] Keyboard input
+- [x] Serial output
+- [x] Test framework
+- [x] Heap allocation
+- [x] Kernel cooperative executor
+- [x] Console
+- [x] Logger
+- [x] Mouse input
+- [x] Advanced Configuration Power Interface
+- [x] Advanced interrupt handling
+- [x] Time management
+- [ ] SMP (Symetric Multiprocessing - more than 1 core)
+- [ ] User Mode
+- [ ] Drivers in user mode
+- [ ] File system
+- [ ] GUI
+- [ ] Secure login
+- [ ] Power management
+- [ ] Network drivers
+- [ ] Port some apps and games (Rust compiler, Doom generic)
+- [ ] GPU drivers
 
 ## Functionality
 
-While it might not seem like much from within the OS, there's a lot of code being written behind the scenes (At the time of writing 4616 lines just for code).
+While it might not seem like much from within the OS, there's a lot of code being written behind the scenes (At the time of writing 5499 lines not including dependencies).
 
 Currently, it has a PS/2 keyboard and mouse driver for input. Most VMs can translate your USB keyboard into PS/2 automatically.
 
@@ -40,6 +63,9 @@ These are some hidden features you might be interested in:
 ## v0.0.1 Running
 
 ![qemu1.png](images/qemu1.jpg)
+
+## v0.0.2 Running
+
 ![qemu2.png](images/qemu2.png)
 
 ## Running the OS
@@ -103,6 +129,20 @@ To manually build, first clone the repository. Ensure you're using the Rust Nigh
 
 `rustup component add llvm-tools-preview`
 
+And install the bare metal target:
+
+`rustup target add x86_64-unknown-none`
+
+On linux if you get an error saying linking with cc failed run this command:
+
+`sudo apt install gcc-multilib` or `sudo pacman -S gcc-multilib`
+
+If any other errors occur with a tip saying you have to install something for example: Error try rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu then make sure to intstall it:
+
+`rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu`
+
+Also on linux the first time building or running may cause an error, cleaning then building again should fix it if not create an issue.
+
 Instead of having to manually enter the full build/run commands every time I have added build Aliases located in `.cargo/config.toml`
 
 To run the OS, make sure you have qemu-system-x86_64.exe installed and added to your environment path variable. Then, from the root folder, enter:
@@ -141,7 +181,7 @@ Download the .ZIP: gdb-13.2.90.20230528-x86_64.7z or higher version
 
 Then extract to a suitable directory and add the bin directory as an environmental path so the gdb.exe can be accessed from anywhere
 
-Same steps for linux using any version of gdb you wish
+For linux using any version of gdb you wish - you can install the default version with your package manager
 
 If you want to add more or change automatic commands on launch, edit the files in `gdb/gdbinit`
 

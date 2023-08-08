@@ -19,6 +19,8 @@
 #![feature(alloc_error_handler)]
 #![feature(const_mut_refs)]
 #![feature(let_chains)]
+#![feature(allocator_api)]
+#![feature(slice_from_ptr_range)]
 #![cfg(not(feature = "std"))]
 
 use bootloader_api::BootInfo as BI;
@@ -79,7 +81,7 @@ pub fn init(boot_info: &'static mut BI) {
     // Initialize the debug logger
     #[cfg(debug_assertions)]
     #[cfg(not(feature = "test"))]
-    log::init(true, true, LogLevel::High, true);
+    log::init(true, true, LogLevel::Beyond, true);
 
     // Initialize the test logger
     #[cfg(feature = "test")]
@@ -110,6 +112,7 @@ pub fn init(boot_info: &'static mut BI) {
             file!(),
             line!(),
         );
+
         panic!("Bootloader Has Not Passed Framebuffer");
     }
 
@@ -159,7 +162,7 @@ pub fn init(boot_info: &'static mut BI) {
             .trace("Recursive Index Not Found", file!(), line!());
     }
 
-    // Dont Know If We Need This
+    // Dont Need This Either
     if let Some(tls_templ) = boot_info.tls_template.as_mut().cloned() {
         tls_template = Some(tls_templ);
     } else {
@@ -186,22 +189,6 @@ pub fn init(boot_info: &'static mut BI) {
     // This Is Just Initializing The Struct That Holds The Console lines
     crate::task::console_handler::init();
 
-    // Initialize Framebuffer
-    {
-        LOGGER
-            .get()
-            .unwrap()
-            .lock()
-            .trace("Initializing framebuffer", file!(), line!());
-
-        FRAMEBUFFER.init_once(|| {
-            spinning_top::Spinlock::new(FrameBufferWriter::new(
-                boot_info.framebuffer.as_mut().unwrap().buffer_mut(),
-                BOOT_INFO.get().unwrap().lock().framebuffer_info,
-            ))
-        });
-    }
-
     // Initialize Memory And Heap
     {
         LOGGER
@@ -217,6 +204,22 @@ pub fn init(boot_info: &'static mut BI) {
     }
 
     // Do not use print, println before this point
+
+    // Initialize Framebuffer
+    {
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .trace("Initializing framebuffer", file!(), line!());
+
+        FRAMEBUFFER.init_once(|| {
+            spinning_top::Spinlock::new(FrameBufferWriter::new(
+                boot_info.framebuffer.as_mut().unwrap().buffer_mut(),
+                BOOT_INFO.get().unwrap().lock().framebuffer_info,
+            ))
+        });
+    }
 
     if ramdisk_address.is_none() {
         LOGGER
@@ -261,10 +264,10 @@ pub fn init(boot_info: &'static mut BI) {
     gdt::init();
 
     // Parse The ACPI Tables
-    let acpi_tables = acpi::init(PhysAddr::new(boot_info.rsdp_addr.into_option().unwrap()));
+    acpi::init(PhysAddr::new(boot_info.rsdp_addr.into_option().unwrap()));
 
     // Create IDT And APIC Structures And Enable Interrupts
-    interrupts::init(&acpi_tables.platform_info().unwrap());
+    interrupts::init();
 
     time::init();
 

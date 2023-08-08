@@ -17,14 +17,26 @@
 use core::panic;
 
 use crate::{other::info::BOOT_INFO, other::log::LOGGER};
-use acpi::{AcpiHandler, AcpiTables, AmlTable, HpetInfo, PciConfigRegions, PhysicalMapping};
-use alloc::vec::Vec;
-use aml::{AmlContext, AmlError};
+use acpi::{
+    AcpiError, AcpiHandler, AcpiTables, AmlTable, HpetInfo, PciConfigRegions, PhysicalMapping,
+    PlatformInfo,
+};
+use alloc::{format, vec::Vec};
+use aml::{AmlContext, AmlError, AmlName};
+use conquer_once::spin::OnceCell;
 use os_units::Bytes;
+use spinning_top::Spinlock;
 use x86_64::{
     instructions::port::{PortReadOnly, PortWriteOnly},
     PhysAddr, VirtAddr,
 };
+
+pub static ACPI_INFO: OnceCell<Spinlock<AcpiInfo>> = OnceCell::uninit();
+
+pub struct AcpiInfo {
+    pub platform_info: Result<PlatformInfo, AcpiError>,
+    pub hpet_info: Result<HpetInfo, AcpiError>,
+}
 
 #[derive(Clone)]
 pub struct AcpiHandlerImpl;
@@ -87,23 +99,35 @@ pub fn init(rsdp_address: PhysAddr) -> AcpiTables<AcpiHandlerImpl> {
 
     match acpi_tables {
         Ok(acpi_tables) => {
-            let _hpet_info = HpetInfo::new(&acpi_tables);
+            LOGGER.get().unwrap().lock().info(&format!(
+                "Parsing ACPI tables revision {}",
+                acpi_tables.revision
+            ));
 
             let _pci = PciConfigRegions::new(&acpi_tables);
 
             let dsdt = acpi_tables.dsdt.as_ref();
 
-            let mut aml_tables = alloc::vec![dsdt];
+            let mut _aml_tables = alloc::vec![dsdt];
 
-            let ssdts = &acpi_tables.ssdts;
+            let _ssdts = &acpi_tables.ssdts;
 
-            for ssdt in ssdts {
-                aml_tables.append(&mut alloc::vec![Some(ssdt)]);
-            }
+            //for ssdt in ssdts {
+            //    aml_tables.append(&mut alloc::vec![Some(ssdt)]);
+            //}
 
-            let _platform_info = acpi::platform::PlatformInfo::new(&acpi_tables);
+            let platform_info = acpi::platform::PlatformInfo::new(&acpi_tables);
 
-            let _context = parse_aml_tables(aml_tables);
+            let hpet_info = HpetInfo::new(&acpi_tables);
+
+            //let _context = parse_aml_tables(aml_tables);
+
+            ACPI_INFO.init_once(|| {
+                Spinlock::new(AcpiInfo {
+                    platform_info,
+                    hpet_info,
+                })
+            });
 
             acpi_tables
         }
@@ -278,8 +302,8 @@ impl aml::Handler for OsAmlHandler {
 ///
 /// # Warning
 ///
-/// Only call this function one time with all AML tables
-fn parse_aml_tables(aml_tables: Vec<Option<&AmlTable>>) -> Result<AmlContext, AmlError> {
+/// Only call this function once with all AML tables
+fn _parse_aml_tables(aml_tables: Vec<Option<&AmlTable>>) -> Result<AmlContext, AmlError> {
     LOGGER
         .get()
         .unwrap()
@@ -287,8 +311,9 @@ fn parse_aml_tables(aml_tables: Vec<Option<&AmlTable>>) -> Result<AmlContext, Am
         .trace("creating AML context", file!(), line!());
     let mut context = aml::AmlContext::new(
         alloc::boxed::Box::new(OsAmlHandler {}),
-        aml::DebugVerbosity::All,
+        aml::DebugVerbosity::None,
     );
+
     for aml_table in aml_tables.into_iter().flatten() {
         LOGGER.get().unwrap().lock().trace(
             "Making AML bytecode stream from raw pointer",
@@ -297,8 +322,7 @@ fn parse_aml_tables(aml_tables: Vec<Option<&AmlTable>>) -> Result<AmlContext, Am
         );
         let aml_bytecode: &[u8] = unsafe {
             core::slice::from_raw_parts(
-                (aml_table.address
-                    + BOOT_INFO.get().unwrap().lock().physical_memory_offset as usize)
+                (aml_table.address as u64 + BOOT_INFO.get().unwrap().lock().physical_memory_offset)
                     as *const u8,
                 aml_table.length as usize,
             )
@@ -309,14 +333,39 @@ fn parse_aml_tables(aml_tables: Vec<Option<&AmlTable>>) -> Result<AmlContext, Am
             .unwrap()
             .lock()
             .trace("Parsing AML table", file!(), line!());
+
         context
             .parse_table(aml_bytecode)
             .expect("Could not parse AML table");
     }
+
+    // to shutdown the computer we need SLP_TYPa and SLP_TYPb from the DSDT which is aml encoded
+    // and we need PM1a_CNT and SLP_EN from somewhere
+
+    // something like this to get the \_S5 shutdown object that contains the SLP_TYPa and SLP_TYPb not sure if this is correct
+    let search_result = context
+        .namespace
+        .get_by_path(&AmlName::from_str("\\_S5").unwrap());
+
+    if let Ok(shutdown_object) = search_result {
+        let buffer_result = shutdown_object.as_buffer(&context);
+
+        if let Ok(shutdown_buffer) = buffer_result {
+            let bytecode = shutdown_buffer.lock();
+
+            // Not sure if these are correct
+            let _slp_typa =
+                u32::from_le_bytes([bytecode[7], bytecode[8], bytecode[9], bytecode[10]]);
+            let _slp_typb =
+                u32::from_be_bytes([bytecode[14], bytecode[15], bytecode[16], bytecode[17]]);
+        }
+    }
+
     LOGGER
         .get()
         .unwrap()
         .lock()
         .trace("Succesfully parsed AML tables", file!(), line!());
+
     Ok(context)
 }

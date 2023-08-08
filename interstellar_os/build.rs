@@ -19,11 +19,10 @@ use std::env;
 fn main() {
     let cwd_path = env::current_dir().expect("can't get current directory");
     let cwd = cwd_path.display();
+    println!("cargo:rerun-if-changed={cwd}/src");
+    println!("cargo:rerun-if-changed={cwd}/tests");
     println!("cargo:rerun-if-changed={cwd}/build.rs");
     println!("cargo:rerun-if-changed={cwd}/Cargo.toml");
-    println!("cargo:rerun-if-changed={cwd}/Cargo.lock");
-    println!("cargo:rerun-if-changed={cwd}/src");
-    println!("cargo:rerun-if-changed={cwd}/.cargo");
-    println!("cargo:rerun-if-changed={cwd}/tests");
-    println!("cargo:rerun-if-changed={cwd}/rust-toolchain");
+    println!("cargo:rerun-if-changed={cwd}/linker.ld");
+    println!("cargo:rerun-if-changed={cwd}/rust-toolchain.toml");
 }

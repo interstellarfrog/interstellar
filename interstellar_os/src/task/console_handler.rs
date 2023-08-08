@@ -14,7 +14,9 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::drivers::screen::framebuffer::Color;
 use crate::other::console::handle_console;
+use crate::other::info::BOOT_INFO;
 use crate::print;
 use crate::FRAMEBUFFER;
 use alloc::borrow::ToOwned;
@@ -30,11 +32,16 @@ use spinning_top::Spinlock;
 
 use super::keyboard::ScancodeStream;
 
+const CONSOLE_PRELINE: &str = "root@interstellar:~$ ";
+
 /// Prints to framebuffer
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => {
-        $crate::task::console_handler::_print(format_args!($($arg)*))
+        $crate::task::console_handler::_print(format_args!($($arg)*), None)
+    };
+    ($($arg:tt)*, color=$color:expr) => {
+        $crate::task::console_handler::_print(format_args!($($arg)*), Some($color))
     };
 }
 
@@ -42,13 +49,20 @@ macro_rules! print {
 #[macro_export]
 macro_rules! println {
     () => ($crate::task::console_handler::print!("\n"));
-    ($fmt:expr) => ($crate::print!(concat!($fmt, "\n")));
-    ($fmt:expr, $($arg:tt)*) => ($crate::print!(
-        concat!($fmt, "\n"), $($arg)*));
+    ($fmt:expr) => {
+        $crate::print!(concat!($fmt, "\n"))
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+        $crate::print!(concat!($fmt, "\n"), $($arg)*)
+    };
+    ($fmt:expr, $($arg:tt)*, color=$color:expr) => {
+        $crate::print!(concat!($fmt, "\n"), $($arg)*);
+        $crate::task::console_handler::set_color($color);
+    };
 }
 
 #[doc(hidden)]
-pub fn _print(args: core::fmt::Arguments) {
+pub fn _print(args: core::fmt::Arguments, color: Option<Color>) {
     use core::fmt::Write;
     use x86_64::instructions::interrupts;
 
@@ -337,11 +351,26 @@ pub fn _print(args: core::fmt::Arguments) {
             .add_to_current_line(lines);
     }
 
-    interrupts::without_interrupts(|| {
-        if let Some(fb) = FRAMEBUFFER.get() {
-            fb.lock().write_fmt(args).unwrap()
-        }
-    });
+    if let Some(col) = color {
+        interrupts::without_interrupts(|| {
+            if let Some(fb) = FRAMEBUFFER.get() {
+                let formatted = format!("{}", args);
+                
+
+                for c in formatted.as_str().chars() {
+                    fb.lock().write_char(c, &Color::to_pixel(col, BOOT_INFO.get().unwrap().lock().framebuffer_info))
+                }
+            }
+        });
+    } else {
+        interrupts::without_interrupts(|| {
+            if let Some(fb) = FRAMEBUFFER.get() {
+                fb.lock().write_fmt(args).unwrap()
+            }
+        });
+    }   
+
+    
 }
 
 pub fn init() {
@@ -426,7 +455,7 @@ impl ConsoleInfo {
 }
 
 pub async fn console_start() {
-    print!("Neutron> ");
+    print!("{}", CONSOLE_PRELINE);
     let mut scancode_stream = ScancodeStream::new();
     let mut keyboard = Keyboard::new(
         ScancodeSet1::new(),
@@ -444,9 +473,9 @@ pub async fn console_start() {
                 input_buffer.clear();
 
                 if no_new_line {
-                    print!("Neutron> ")
+                    print!("{}", CONSOLE_PRELINE);
                 } else {
-                    print!("\nNeutron> ");
+                    print!("\n{}", CONSOLE_PRELINE);
                 }
             } else if key_event == KeyEvent::new(KeyCode::Backspace, pc_keyboard::KeyState::Down) {
                 if !input_buffer.is_empty() {
@@ -472,7 +501,7 @@ pub async fn console_start() {
                         if character == '\n' {
                             handle_console(input_buffer.as_str());
                             input_buffer.clear();
-                            print!("\nNeutron> ");
+                            print!("\n{}", CONSOLE_PRELINE);
                         } else {
                             print!("{}", character);
                             input_buffer.push(character);

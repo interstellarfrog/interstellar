@@ -196,8 +196,11 @@ pub extern "x86-interrupt" fn security_exception_fault_handler(
 
 pub const IOAPIC_INTERRUPT_INDEX_OFFSET: u8 = 32;
 
-pub const LAPIC_INTERRUPT_INDEX_OFFSET: u8 = 46;
+pub const LAPIC_INTERRUPT_INDEX_OFFSET: u8 = 49;
 
+/// Enum representing
+///
+/// * Software/Hardware interrupt indexes for the IDT
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum InterruptIndex {
@@ -205,19 +208,22 @@ pub enum InterruptIndex {
     Pit,                                      // 0/33
     Keyboard,                                 // 1/34
     _CascadeForSecondPic,                     // 2/35
-    _SerialPort2Controller,                   // 3/36
-    _SerialPort1Controller,                   // 4/37
-    _ParallelPort2And3OrSoundCard,            // 5/38
-    _FloppyDiskController,                    // 6/39
-    _ParallelPort1OrPrinter,                  // 7/40
+    _COM2,                                    // 3/36
+    _COM1,                                    // 4/37
+    _LPT2,                                    // 5/38
+    _FloppyDisk,                              // 6/39
+    _LPT1,                                    // 7/40
     _RTC,                                     // 8/41
-    _GeneralIOAndSound,                       // 9/42
-    _ACPI,                                    // 10/43
-    _USBAndNetwork,                           // 11/44
+    _Free1,                                   // 9/42
+    _Free2,                                   // 10/43
+    _Free3,                                   // 11/44
     Mouse,                                    // 12/45
-    ApicError = LAPIC_INTERRUPT_INDEX_OFFSET, // 46
-    Timer,                                    // 47
-    Spurious,                                 // 48
+    _CoprocessorOrFPUOrInterprocessor,        // 13/46
+    _ATA1,                                    // 14/47
+    _ATA2,                                    // 15/48
+    ApicError = LAPIC_INTERRUPT_INDEX_OFFSET, // 49
+    Timer,                                    // 50
+    Spurious,                                 // 51
 }
 
 impl InterruptIndex {
@@ -230,6 +236,9 @@ impl InterruptIndex {
     }
 }
 
+/// Enum representing
+///
+/// * The indexes of the PICs interrupts that we need to use to calculate the IOAPIC interrupt indexes
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum IoApicTableIndex {
@@ -256,20 +265,6 @@ pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
 
 pub static PICS: spin::Mutex<ChainedPics> =
     spin::Mutex::new(unsafe { ChainedPics::new(PIC_1_OFFSET, PIC_2_OFFSET) });
-
-/// Handler for the PIT interrupt
-pub extern "x86-interrupt" fn pit_interrupt_handler(_stack_frame: InterruptStackFrame) {
-    unsafe { crate::time::PIT_COUNT.fetch_add(1, core::sync::atomic::Ordering::SeqCst) };
-
-    unsafe {
-        if let Some(mut apic) = super::LAPIC.get().unwrap().try_lock() {
-            apic.end_of_interrupt();
-        } else {
-            super::LAPIC.get().unwrap().force_unlock();
-            super::LAPIC.get().unwrap().lock().end_of_interrupt();
-        }
-    } // Tell It We Are Done
-}
 
 //###############################################
 //        Local APIC interrupt handlers
@@ -322,13 +317,32 @@ pub extern "x86-interrupt" fn spurious_interrupt_handler(stack_frame: InterruptS
 //        IOAPIC interrupt handlers
 //###############################################
 
+/// Handler for the PIT interrupt
+pub extern "x86-interrupt" fn pit_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    unsafe { crate::time::PIT_COUNT.fetch_add(1, core::sync::atomic::Ordering::SeqCst) };
+
+    unsafe {
+        if let Some(mut apic) = super::LAPIC.get().unwrap().try_lock() {
+            apic.end_of_interrupt();
+        } else {
+            super::LAPIC.get().unwrap().force_unlock();
+            super::LAPIC.get().unwrap().lock().end_of_interrupt();
+        }
+    } // Tell It We Are Done
+}
+
 /// Handler for the keyboard interrupt
 pub extern "x86-interrupt" fn keyboard_interrupt_handler(_stack_frame: InterruptStackFrame) {
     let mut port = Port::new(0x60); // Get PS2 Data Port
     let scancode: u8 = unsafe { port.read() }; // Read Scan Code From Port
     crate::task::keyboard::add_scancode(scancode);
     unsafe {
-        super::LAPIC.get().unwrap().lock().end_of_interrupt();
+        if let Some(mut apic) = super::LAPIC.get().unwrap().try_lock() {
+            apic.end_of_interrupt();
+        } else {
+            super::LAPIC.get().unwrap().force_unlock();
+            super::LAPIC.get().unwrap().lock().end_of_interrupt();
+        }
     } // Tell It We Are Done
 }
 
@@ -338,6 +352,11 @@ pub extern "x86-interrupt" fn mouse_interrupt_handler(_stack_frame: InterruptSta
     let packet = unsafe { port.read() };
     crate::task::mouse::write(packet);
     unsafe {
-        super::LAPIC.get().unwrap().lock().end_of_interrupt();
+        if let Some(mut apic) = super::LAPIC.get().unwrap().try_lock() {
+            apic.end_of_interrupt();
+        } else {
+            super::LAPIC.get().unwrap().force_unlock();
+            super::LAPIC.get().unwrap().lock().end_of_interrupt();
+        }
     } // Tell It We Are Done
 }

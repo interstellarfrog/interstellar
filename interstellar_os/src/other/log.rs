@@ -14,6 +14,8 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::drivers::screen::framebuffer::Color;
+use crate::drivers::screen::framebuffer::FRAMEBUFFER;
 use crate::println;
 use crate::serial_println;
 use conquer_once::spin::OnceCell;
@@ -129,10 +131,17 @@ impl Logger {
     pub fn error(&self, message: &str) {
         if self.log_level >= LogLevel::Low {
             if self.serial_printing {
-                serial_println!("{}", message);
+                serial_println!("Error - {}", message);
             }
             if self.screen_printing {
-                println!("{}", message);
+
+                let old_col = FRAMEBUFFER.get().unwrap().lock().text_col;
+
+                FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Red);
+
+                println!("Error - {}", message);
+
+                FRAMEBUFFER.get().unwrap().lock().change_text_color(old_col);
             }
         }
     }
@@ -145,10 +154,19 @@ impl Logger {
     pub fn warn(&self, message: &str) {
         if self.log_level >= LogLevel::Normal {
             if self.serial_printing {
-                serial_println!("{}", message);
+                serial_println!("Warning - {}", message);
             }
             if self.screen_printing {
-                println!("{}", message);
+
+
+                let old_col = FRAMEBUFFER.get().unwrap().lock().text_col;
+
+                FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Red);
+
+                println!("Warning - {}", message);
+
+                FRAMEBUFFER.get().unwrap().lock().change_text_color(old_col);
+
             }
         }
     }
@@ -177,11 +195,17 @@ impl Logger {
     pub fn debug(&self, message: &str) {
         if self.log_level == LogLevel::Beyond {
             if self.serial_printing {
-                serial_println!("{}", message);
+                serial_println!("Debug - {}", message);
             }
             if self.screen_printing {
-                println!("{}", message);
+                println!("Debug - {}", message);
             }
+        }
+    }
+
+    pub fn serial_debug(&self, message: &str) {
+        if self.log_level == LogLevel::Beyond && self.serial_printing {
+            serial_println!("Debug - {}", message)
         }
     }
 

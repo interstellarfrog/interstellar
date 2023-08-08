@@ -15,13 +15,23 @@
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 /// The Code In This File Is For Handling CPU Exceptions And Interrupts - 0 Division errors etc. And Timers And Legacy Keyboard Input etc.
+///
+///
+///
+///
+///
+///
+///
+///
+///
+///
 use crate::{gdt, other::log::LOGGER};
 use acpi::platform::interrupt::Polarity;
-use acpi::PlatformInfo;
 use alloc::format;
 use handlers::*;
 use lazy_static::lazy_static;
-use x86_64::{instructions::port::Port, structures::idt::InterruptDescriptorTable};
+use x86_64::instructions::port::Port;
+use x86_64::structures::idt::InterruptDescriptorTable;
 
 use x86_64::PhysAddr;
 
@@ -137,7 +147,7 @@ lazy_static! {
 }
 
 /// Initialize interrupts and exceptions
-pub fn init(acpi_platform_info: &PlatformInfo) {
+pub fn init() {
     LOGGER
         .get()
         .unwrap()
@@ -165,7 +175,14 @@ pub fn init(acpi_platform_info: &PlatformInfo) {
 
     IDT.load();
 
-    if let InterruptModel::Apic(ref apic_info) = acpi_platform_info.interrupt_model {
+    let acpi_info = crate::acpi::ACPI_INFO.get().unwrap().lock();
+
+    let platform_info = acpi_info
+        .platform_info
+        .as_ref()
+        .expect("Error: Platform info cannot be parsed from ACPI");
+
+    if let InterruptModel::Apic(ref apic_info) = platform_info.interrupt_model {
         unsafe { PICS.lock().disable() };
 
         init_lapic(apic_info);
@@ -188,11 +205,7 @@ pub fn init(acpi_platform_info: &PlatformInfo) {
         .lock()
         .trace("Enabling interrupts", file!(), line!());
 
-    LOGGER.get().unwrap().lock().info("Enabling interrupts");
-
-    x86_64::instructions::interrupts::enable(); // Enable Interrupts
-
-    LOGGER.get().unwrap().lock().info(&format!(
+    LOGGER.get().unwrap().lock().debug(&format!(
         "Interrupts Enabled?: {}",
         x86_64::instructions::interrupts::are_enabled()
     ));

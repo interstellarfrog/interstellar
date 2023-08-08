@@ -1,10 +1,30 @@
+Added some color
+
+Optimized some code
+
+Removed legacy rainbow command from console
+
+Updated all dependencies appart from regex for the test runner
+
+Added time management using PIT and LAPIC timer
+
+Added correct IOAPIC mappings using the ACPI redirection table
+
+Added double buffering
+
+Added a console lines vec
+
+Fixed mouse cursor shape
+
+-------------------------------------------------------------------
+
 Added test arg parsing for example "cargo test -- --test stack_overflow --test basic_boot --verbose" runs stack_overflow and basic_boot only and prints test runner startup details
 
 Fixed console "clear" bug where it would always print a new line
 
 Added function to show aproximate total memory
 
-Added APCI support -- We can now use PS/2 keyboard and mouse input with UEFI!!!!
+Added APCI support
 
 Added ACPI support
 

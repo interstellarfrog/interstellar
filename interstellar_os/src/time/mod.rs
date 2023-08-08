@@ -18,6 +18,9 @@ use conquer_once::spin::OnceCell;
 use core::{sync::atomic::AtomicU64, time::Duration};
 use spinning_top::Spinlock;
 
+pub mod hpet;
+pub mod pit;
+
 /// This is the timer count for the PIT timer this is incremented every tick
 ///
 /// # Fun Fact
@@ -32,6 +35,9 @@ pub static mut PIT_COUNT: AtomicU64 = AtomicU64::new(0);
 /// This will take approx 5.85 Billion years to overflow at a 10ms per second tick
 pub static mut APIC_COUNT: AtomicU64 = AtomicU64::new(0);
 
+/// This is the global timer set up at OS boot
+///
+/// It can be used freely by most parts of the kernel
 pub static mut GLOBAL_TIMER: OnceCell<Spinlock<Timer>> = OnceCell::uninit();
 
 /// initialize the global timer
@@ -39,6 +45,7 @@ pub fn init() {
     unsafe { GLOBAL_TIMER.init_once(|| Spinlock::new(Timer::new())) };
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Timer {
     /// This is the start timer count for the timer
     ///
@@ -50,32 +57,42 @@ pub struct Timer {
 
 impl Timer {
     #[allow(clippy::new_without_default)]
-    // Create a new Timer and record the start time
+    /// Create a new Timer and record the start time
     pub fn new() -> Timer {
         let start_count = unsafe { APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
         Timer { start_count }
     }
 
-    // Get the elapsed time in milliseconds
+    /// Get the elapsed time in milliseconds
     pub fn elapsed(&self) -> Duration {
+        // get the current count say its 10
         let current_count = unsafe { APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
+        // then we get the elapsed ticks by taking away the start count say this is 0
         let elapsed_ticks = current_count - self.start_count;
+        // then we return elasped: 10 * ms per tick: 10 which would be 100ms
         Duration::from_millis(elapsed_ticks * 10) // Assuming that the timer increments every 10ms
     }
 
+    /// Suspend the CPU for a [Duration]
     pub fn sleep(self, duration: Duration) {
         // Calculate the number of timer ticks for the desired duration
-        let ticks = duration.as_millis() / 10; // Assuming that the timer increments every 10ms
+
+        // Assuming that the timer increments every 10ms
+        // Assuming duration.as_millis is 1000 then it = 100
+        let dur = duration.as_millis() / 10;
 
         // Get the current timer count
+        // Assuming this is 0
         let start_count = unsafe { APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
 
         // Calculate the target count
-        let target_count = start_count + ticks as u64;
+        // Assuming this is 100
+        let target_count = start_count + dur as u64;
 
         // Wait until the timer count reaches the target
         loop {
             let current_count = unsafe { APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
+            // Then assuming this would be if 0 >= 100    - wait for 100 ticks which is 1000ms which is 1s
             if current_count >= target_count {
                 break;
             }

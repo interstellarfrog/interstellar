@@ -30,12 +30,24 @@ use spinning_top::Spinlock;
 static MOUSE: OnceCell<Mouse> = OnceCell::uninit();
 
 // 1 == Black, 2 = White, 0 = None
+#[rustfmt::skip]
 const CURSOR: [u8; 170] = [
-    1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 1, 2,
-    2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 1, 2, 2, 2,
-    2, 2, 1, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 1, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 0, 1, 2, 2, 2, 2, 2,
-    2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 2, 2, 1, 1, 2, 2, 1,
-    0, 0, 1, 2, 1, 0, 1, 2, 2, 1, 0, 0, 1, 1, 0, 0, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+    1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 
+    1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 
+    1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 
+    1, 2, 2, 2, 1, 0, 0, 0, 0, 0, 
+    1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 
+    1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 
+    1, 2, 2, 2, 2, 2, 2, 1, 0, 0, 
+    1, 2, 2, 2, 2, 2, 2, 2, 1, 0, 
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 
+    1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 
+    1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 
+    1, 2, 2, 1, 1, 2, 2, 1, 0, 0, 
+    1, 2, 1, 0, 1, 2, 2, 1, 0, 0, 
+    1, 1, 0, 0, 0, 1, 2, 2, 1, 0, 
+    0, 0, 0, 0, 0, 1, 2, 2, 1, 0,
     0, 0, 0, 0, 0, 0, 1, 1, 0, 0,
 ];
 const CURSOR_SIZE: usize = 170;
@@ -54,7 +66,7 @@ pub fn init() {
     MOUSE.init_once(Mouse::default);
 }
 /// Get the mouse instance.
-pub(crate) fn get() -> Option<Mouse> {
+pub fn get() -> Option<Mouse> {
     MOUSE.get().cloned()
 }
 
@@ -62,7 +74,7 @@ type OldMouseInfo = Arc<Mutex<AtomicCell<Option<Box<[[usize; 6]; CURSOR_SIZE]>>>
 
 /// Mouse struct representing a mouse device.
 #[derive(Clone)]
-pub(crate) struct Mouse {
+pub struct Mouse {
     dev: Arc<Spinlock<MouseDevice>>,
     state: Arc<AtomicCell<Option<MouseState>>>,
     x: Arc<AtomicUsize>,
@@ -176,6 +188,8 @@ impl Mouse {
                 );
             }
         }
+
+        FRAMEBUFFER.get().unwrap().lock().copy_to_buffer();
 
         mouse_obj
             .last_pixel_pos_and_colors

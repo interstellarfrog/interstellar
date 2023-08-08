@@ -20,6 +20,7 @@ use crate::{
     memory::MEMORY,
     print, println,
 };
+use alloc::format;
 use alloc::vec::Vec;
 
 /// Handles the console input by executing the corresponding commands.
@@ -33,6 +34,11 @@ pub fn handle_console(line: &str) -> bool {
         .unwrap()
         .lock()
         .trace("Handling console command", file!(), line!());
+    
+    if !line.is_empty() {
+        print!("\n");
+    }
+
     let commands: Vec<&str> = line.trim().split("&&").map(str::trim).collect();
 
     for command in commands {
@@ -49,12 +55,15 @@ pub fn handle_console(line: &str) -> bool {
                 "mem" => check_memory(),
                 "time" => time_command(args),
                 "color" => change_color(args),
-                "bgcolor" => change_background_color(args),
+                "bgcolor" => {
+                    let clear = change_background_color(args);
+                    return clear;
+                }
                 "colour" => change_color(args),
                 "echo" => echo(args),
                 "help" => help_command(),
                 "test" => {
-                    println!("\nInitializing Tests");
+                    println!("Initializing Tests");
                     crate::other::tests::main();
                 }
                 "cls" => {
@@ -65,9 +74,6 @@ pub fn handle_console(line: &str) -> bool {
                     FRAMEBUFFER.get().unwrap().lock().clear();
                     return true;
                 }
-                "rainbow" => {
-                    // WRITER.lock().rainbow_toggle();
-                }
                 "" => {
                     return false;
                 }
@@ -75,7 +81,7 @@ pub fn handle_console(line: &str) -> bool {
                     stack_overflow();
                 }
                 _ => {
-                    print!("\nERROR: UNKNOWN COMMAND - <{}>", command);
+                    LOGGER.get().unwrap().lock().error(&format!("UNKNOWN COMMAND - <{}>", command));
                 }
             }
         }
@@ -101,9 +107,9 @@ fn stack_overflow() {
 ///
 /// * `args` - The arguments passed to the command.
 fn hello_command(args: &[&str]) {
-    println!("\nHello, World!");
+    println!("Hello, World!");
     if !args.is_empty() {
-        println!("\nArguments: {:?}", args);
+        println!("Arguments: {:?}", args);
     }
 }
 
@@ -114,12 +120,12 @@ fn hello_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn add_command(args: &[&str]) {
     if args.len() != 2 {
-        println!("\nInvalid number of arguments. Usage: add <num1> <num2>");
+        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: add <num1> <num2>");
     } else if let (Ok(num1), Ok(num2)) = (args[0].parse::<i128>(), args[1].parse::<i128>()) {
         let result = num1 + num2;
-        println!("\nSum: {}", result);
+        println!("Sum: {}", result);
     } else {
-        println!("\nInvalid arguments. Usage: add <num1> <num2>");
+        LOGGER.get().unwrap().lock().error("Invalid arguments. Usage: add <num1> <num2>");
     }
 }
 
@@ -130,12 +136,12 @@ fn add_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn subtract_command(args: &[&str]) {
     if args.len() != 2 {
-        println!("\nInvalid number of arguments. Usage: subtract <num1> <num2>");
+        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: subtract <num1> <num2>");
     } else if let (Ok(num1), Ok(num2)) = (args[0].parse::<i128>(), args[1].parse::<i128>()) {
         let result = num1 - num2;
         println!("\nDifference: {}", result);
     } else {
-        println!("\nInvalid arguments. Usage: subtract <num1> <num2>");
+        LOGGER.get().unwrap().lock().error("Invalid arguments. Usage: subtract <num1> <num2>");
     }
 }
 
@@ -146,12 +152,12 @@ fn subtract_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn multiply_command(args: &[&str]) {
     if args.len() != 2 {
-        println!("\nInvalid number of arguments. Usage: multiply <num1> <num2>");
+        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: multiply <num1> <num2>");
     } else if let (Ok(num1), Ok(num2)) = (args[0].parse::<i128>(), args[1].parse::<i128>()) {
         let result = num1 * num2;
         println!("\nProduct: {}", result);
     } else {
-        println!("\nInvalid arguments. Usage: multiply <num1> <num2>");
+        LOGGER.get().unwrap().lock().error("Invalid arguments. Usage: multiply <num1> <num2>");
     }
 }
 
@@ -162,7 +168,7 @@ fn multiply_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn divide_command(args: &[&str]) {
     if args.len() != 2 {
-        println!("\nInvalid number of arguments. Usage: divide <num1> <num2>");
+        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: multiply <num1> <num2>");
     } else if let (Ok(num1), Ok(num2)) = (args[0].parse::<f64>(), args[1].parse::<f64>()) {
         if num2 == 0.0 {
             println!("\nCannot divide by zero.");
@@ -171,7 +177,7 @@ fn divide_command(args: &[&str]) {
             println!("\nQuotient: {}", result);
         }
     } else {
-        println!("\nInvalid arguments. Usage: divide <num1> <num2>");
+        LOGGER.get().unwrap().lock().error("Invalid arguments. Usage: divide <num1> <num2>");
     }
 }
 
@@ -182,12 +188,12 @@ fn divide_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn power_command(args: &[&str]) {
     if args.len() != 2 {
-        println!("\nInvalid number of arguments. Usage: power <base> <exponent>");
+        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: power <base> <exponent>");
     } else if let (Ok(base), Ok(exponent)) = (args[0].parse::<f64>(), args[1].parse::<f64>()) {
         let result = power(base, exponent);
         println!("\nResult: {}", result);
     } else {
-        println!("\nInvalid arguments. Usage: power <base> <exponent>");
+        LOGGER.get().unwrap().lock().error("Invalid arguments. Usage: power <base> <exponent>");
     }
 }
 
@@ -211,7 +217,7 @@ fn power(base: f64, exponent: f64) -> f64 {
 
 /// Print memory details
 fn check_memory() {
-    println!("\nMemory Info");
+    println!("Memory Info");
     println!(
         "Total GB: {}",
         MEMORY.get().unwrap().lock().total_mem_gigabytes()
@@ -243,34 +249,33 @@ fn check_memory() {
 
 fn time_command(args: &[&str]) {
     if args.is_empty() || args.len() != 1 {
-        println!(
-            "\nInvalid Arguments. Example Usage: time <boot>   - Tip Use time help or time /?"
-        );
+        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: time <command> - Tip Use time help or time /?");
     } else {
         let arg = args[0];
 
         if arg == "/?" || arg == "help" {
             println!(
-                "\nExample Usage: time <boot>\n\nAvailable Time Commands:\n
+                "Example Usage: time <boot>\n\nAvailable Time Commands:\n
             boot"
             );
-            return;
-        }
-        if arg == "boot" {
+        } else if arg == "boot" {
             let boot_time = unsafe { crate::time::GLOBAL_TIMER.get().unwrap().lock().elapsed() };
+
             if boot_time.as_secs() > 60 {
                 if (boot_time.as_secs() / 60) > 60 {
-                    println!("\nTime Since Boot: {} Hrs", (boot_time.as_secs() / 60) / 60);
+                    println!("Time Since Boot: {} Hrs", (boot_time.as_secs() / 60) / 60);
                 } else {
                     println!(
-                        "\nTime Since Boot: {} mins {}s",
+                        "Time Since Boot: {} mins {}s",
                         boot_time.as_secs() / 60,
                         boot_time.as_secs() - ((boot_time.as_secs() / 60) * 60)
                     );
                 }
             } else {
-                println!("\nTime Since Boot: {}s", boot_time.as_secs());
+                println!("Time Since Boot: {}s", boot_time.as_secs());
             }
+        } else {
+            LOGGER.get().unwrap().lock().error("Invalid Arguments. Example Usage: time <boot> - Tip Use time help or time /?");
         }
     }
 }
@@ -282,273 +287,161 @@ fn time_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn change_color(args: &[&str]) {
     if args.is_empty() || args.len() != 1 {
-        println!(
-            "\nInvalid Arguments. Example Usage: color <red>   - Tip Use color help or color /?"
-        );
+        LOGGER.get().unwrap().lock().error("Invalid number of Arguments. Usage: color <color> - Tip Use color help or color /?");
     } else {
         let arg = args[0];
 
         if arg == "/?" || arg == "help" {
             println!(
-                "\nExample Usage: color <red>\n\nAvailable Colors:\n
-            black,
-            blue,
-            green,
-            cyan,
-            red,
-            magenta,
-            brown,
-            lightgray,
-            darkgray,
-            lightblue,
-            lightgreen,
-            lightcyan,
-            lightred,
-            pink,
-            yellow,
-            white"
+                "Example Usage: color <red>\n\nAvailable Colors:\n
+            - white
+            - black
+            - blue
+            - green
+            - cyan
+            - red
+            - magenta
+            - brown
+            - lightgray
+            - darkgray
+            - lightblue
+            - lightgreen
+            - lightcyan
+            - lightred
+            - pink
+            - yellow
+            - midnightblue
+            - orange
+            - lavender
+            - teal
+            - gold
+            - silver
+            - violet
+            - coral
+            - aqua"
             );
             return;
         }
-        if arg == "black" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::Black);
-        } else if arg == "blue" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::Blue);
-        } else if arg == "green" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::Green);
-        } else if arg == "cyan" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::Cyan);
-        } else if arg == "red" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::Red);
-        } else if arg == "magenta" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::Magenta);
-        } else if arg == "brown" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::Brown);
-        } else if arg == "lightgray" || arg == "lightgrey" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::LightGray);
-        } else if arg == "darkgray" || arg == "darkgrey" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::DarkGray);
-        } else if arg == "lightblue" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::LightBlue);
-        } else if arg == "lightgreen" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::LightGreen);
-        } else if arg == "lightcyan" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::LightCyan);
-        } else if arg == "lightred" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::LightRed);
-        } else if arg == "pink" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::Pink);
-        } else if arg == "yellow" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::Yellow);
-        } else if arg == "white" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_text_color(Color::White);
-        } else {
-            println!("\nInvalid Color: {}  - Tip Use color help or color /?", arg);
-        }
+
+        let framebuffer = FRAMEBUFFER.get().unwrap();
+        let color = match arg {
+            "black" => Color::Black,
+            "blue" => Color::Blue,
+            "green" => Color::Green,
+            "cyan" => Color::Cyan,
+            "red" => Color::Red,
+            "magenta" => Color::Magenta,
+            "brown" => Color::Brown,
+            "lightgray" | "lightgrey" => Color::LightGray,
+            "darkgray" | "darkgrey" => Color::DarkGray,
+            "lightblue" => Color::LightBlue,
+            "lightgreen" => Color::LightGreen,
+            "lightcyan" => Color::LightCyan,
+            "lightred" => Color::LightRed,
+            "pink" => Color::Pink,
+            "yellow" => Color::Yellow,
+            "white" => Color::White,
+            "midnightblue" => Color::MidnightBlue,
+            "orange" => Color::Orange,
+            "lavender" => Color::Lavender,
+            "teal" => Color::Teal,
+            "gold" => Color::Gold,
+            "silver" => Color::Silver,
+            "violet" => Color::Violet,
+            "coral" => Color::Coral,
+            "aqua" => Color::Aqua,
+            _ => {
+                LOGGER.get().unwrap().lock().error(&format!("Invalid Color: {} - Tip Use color help or color /?", arg));
+                return;
+            }
+        };
+
+        framebuffer.lock().change_text_color(color);
     }
 }
 
-/// Executes the "color" command.
+/// Executes the "bgcolor" command.
 ///
 /// # Arguments
 ///
 /// * `args` - The arguments passed to the command.
-fn change_background_color(args: &[&str]) {
+fn change_background_color(args: &[&str]) -> bool {
     if args.is_empty() || args.len() != 1 {
-        println!(
-            "\nInvalid Arguments. Example Usage: bgcolor <red>   - Tip Use bgcolor help or bgcolor /?"
-        );
+        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: bgcolor <color> - Tip Use bgcolor help or bgcolor /?");
+        false
     } else {
         let arg = args[0];
 
         if arg == "/?" || arg == "help" {
             println!(
-                "\nExample Usage: bgcolor <red>\n\nAvailable Colors:\n
-            black,
-            blue,
-            green,
-            cyan,
-            red,
-            magenta,
-            brown,
-            lightgray,
-            darkgray,
-            lightblue,
-            lightgreen,
-            lightcyan,
-            lightred,
-            pink,
-            yellow,
-            white"
+                "Example Usage: bgcolor <red>\n\nAvailable Colors:\n
+            - white
+            - black
+            - blue
+            - green
+            - cyan
+            - red
+            - magenta
+            - brown
+            - lightgray
+            - darkgray
+            - lightblue
+            - lightgreen
+            - lightcyan
+            - lightred
+            - pink
+            - yellow
+            - midnightblue
+            - orange
+            - lavender
+            - teal
+            - gold
+            - silver
+            - violet
+            - coral
+            - aqua"
             );
-            return;
+            return false;
         }
-        if arg == "black" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::Black);
-        } else if arg == "blue" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::Blue);
-        } else if arg == "green" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::Green);
-        } else if arg == "cyan" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::Cyan);
-        } else if arg == "red" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::Red);
-        } else if arg == "magenta" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::Magenta);
-        } else if arg == "brown" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::Brown);
-        } else if arg == "lightgray" || arg == "lightgrey" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::LightGray);
-        } else if arg == "darkgray" || arg == "darkgrey" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::DarkGray);
-        } else if arg == "lightblue" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::LightBlue);
-        } else if arg == "lightgreen" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::LightGreen);
-        } else if arg == "lightcyan" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::LightCyan);
-        } else if arg == "lightred" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::LightRed);
-        } else if arg == "pink" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::Pink);
-        } else if arg == "yellow" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::Yellow);
-        } else if arg == "white" {
-            FRAMEBUFFER
-                .get()
-                .unwrap()
-                .lock()
-                .change_background_color(Color::White);
-        } else {
-            println!(
-                "\nInvalid Color: {}  - Tip Use bgcolor help or bgcolor /?",
-                arg
-            );
-        }
+
+        let framebuffer = FRAMEBUFFER.get().unwrap();
+        let color = match arg {
+            "black" => Color::Black,
+            "blue" => Color::Blue,
+            "green" => Color::Green,
+            "cyan" => Color::Cyan,
+            "red" => Color::Red,
+            "magenta" => Color::Magenta,
+            "brown" => Color::Brown,
+            "lightgray" | "lightgrey" => Color::LightGray,
+            "darkgray" | "darkgrey" => Color::DarkGray,
+            "lightblue" => Color::LightBlue,
+            "lightgreen" => Color::LightGreen,
+            "lightcyan" => Color::LightCyan,
+            "lightred" => Color::LightRed,
+            "pink" => Color::Pink,
+            "yellow" => Color::Yellow,
+            "white" => Color::White,
+            "midnightblue" => Color::MidnightBlue,
+            "orange" => Color::Orange,
+            "lavender" => Color::Lavender,
+            "teal" => Color::Teal,
+            "gold" => Color::Gold,
+            "silver" => Color::Silver,
+            "violet" => Color::Violet,
+            "coral" => Color::Coral,
+            "aqua" => Color::Aqua,
+            _ => {
+                LOGGER.get().unwrap().lock().error(&format!("Invalid color: {} - Tip Use bgcolor help or bgcolor /?", arg));
+                return false;
+            }
+        };
+
+        framebuffer.lock().change_background_color(color);
+
+        FRAMEBUFFER.get().unwrap().lock().clear();
+
+        true
     }
 }
 
@@ -558,7 +451,6 @@ fn change_background_color(args: &[&str]) {
 ///
 /// * `s` - The arguments passed to the command.
 fn echo(s: &[&str]) {
-    println!("");
     for word in s {
         print!("{} ", word)
     }
@@ -567,19 +459,19 @@ fn echo(s: &[&str]) {
 
 /// Executes the "help" command.
 fn help_command() {
-    println!("\nAvailable Commands:\n");
+    println!("Available Commands:\n");
     println!("hello");
+    println!("clear/cls");
     println!("add <num1> <num2>");
     println!("subtract <num1> <num2>");
     println!("multiply <num1> <num2>");
     println!("divide <num1> <num2>");
     println!("power <Base> <Exponent>");
-    println!("mem");
     println!("color <color_name>");
     println!("bgcolor <color_name>");
     println!("echo <text>");
     println!("test");
-    println!("clear");
-    println!("rainbow");
+    println!("mem");
+    println!("stack_overflow");
     println!("help");
 }

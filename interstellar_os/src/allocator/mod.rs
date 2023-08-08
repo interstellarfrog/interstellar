@@ -14,6 +14,9 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use core::alloc::Allocator;
+
+use alloc::alloc::Global;
 use x86_64::{
     structures::paging::{FrameAllocator, Mapper, Page, PageTableFlags},
     VirtAddr,
@@ -27,7 +30,7 @@ pub const HEAP_START: usize = 0x4444_4444_0000;
 pub const HEAP_SIZE: usize = 16 * 1024 * 1024;
 
 #[global_allocator]
-static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
+pub static ALLOCATOR: Locked<FixedSizeBlockAllocator> = Locked::new(FixedSizeBlockAllocator::new());
 
 pub fn init(
     physical_memory_offset: Option<u64>,
@@ -76,5 +79,20 @@ impl<T> Locked<T> {
 
     pub fn lock(&self) -> spin::MutexGuard<T> {
         self.inner.lock()
+    }
+}
+
+pub struct AlignedAlloc<const N: usize>;
+
+unsafe impl<const N: usize> Allocator for AlignedAlloc<N> {
+    fn allocate(
+        &self,
+        layout: core::alloc::Layout,
+    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+        Global.allocate(layout.align_to(N).unwrap())
+    }
+
+    unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, layout: core::alloc::Layout) {
+        Global.deallocate(ptr, layout.align_to(N).unwrap())
     }
 }

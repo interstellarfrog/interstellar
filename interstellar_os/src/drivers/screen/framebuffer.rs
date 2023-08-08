@@ -14,9 +14,12 @@
 //You should have received a copy of the GNU General Public License
 //along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use core::fmt;
+
+use alloc::vec;
+use alloc::vec::Vec;
 use bootloader_api::info::{FrameBufferInfo, PixelFormat};
 use conquer_once::spin::OnceCell;
-use core::fmt;
 use font_constants::BACKUP_CHAR;
 use noto_sans_mono_bitmap::{
     get_raster, get_raster_width, FontWeight, RasterHeight, RasterizedChar,
@@ -41,6 +44,15 @@ pub enum Color {
     LightRed,
     Pink,
     Yellow,
+    MidnightBlue,
+    Orange,
+    Lavender,
+    Teal,
+    Gold,
+    Silver,
+    Violet,
+    Coral,
+    Aqua,
 }
 
 impl Color {
@@ -67,6 +79,15 @@ impl Color {
                         Color::LightRed => [255, 99, 71, 0],
                         Color::Pink => [255, 192, 203, 0],
                         Color::Yellow => [255, 255, 0, 0],
+                        Color::MidnightBlue => [34, 50, 77, 0],
+                        Color::Orange => [255, 165, 0, 0],
+                        Color::Lavender => [230, 230, 250, 0],
+                        Color::Teal => [0, 128, 128, 0],
+                        Color::Gold => [255, 215, 0, 0],
+                        Color::Silver => [192, 192, 192, 0],
+                        Color::Violet => [238, 130, 238, 0],
+                        Color::Coral => [255, 127, 80, 0],
+                        Color::Aqua => [0, 255, 255, 0],
                         _ => [0, 0, 0, 255],
                     }
                 } else if buffer_info.pixel_format == PixelFormat::Bgr {
@@ -85,10 +106,19 @@ impl Color {
                         Color::LightRed => [71, 99, 255, 0],
                         Color::Pink => [203, 192, 255, 0],
                         Color::Yellow => [0, 255, 255, 0],
+                        Color::MidnightBlue => [77, 50, 34, 0],
+                        Color::Orange => [0, 165, 255, 0],
+                        Color::Lavender => [250, 230, 230, 0],
+                        Color::Teal => [128, 0, 128, 0],
+                        Color::Gold => [0, 215, 255, 0],
+                        Color::Silver => [192, 192, 192, 0],
+                        Color::Violet => [238, 130, 238, 0],
+                        Color::Coral => [80, 127, 255, 0],
+                        Color::Aqua => [255, 255, 0, 0],
                         _ => [0, 0, 0, 255],
                     }
                 } else {
-                    // Pixel Format Is Not BGR or RGB So Make Fully invisible
+                    // Pixel Format unrecognized - It Not BGR or RGB So Make Fully invisible
                     [0, 0, 0, 255]
                 }
             }
@@ -139,26 +169,30 @@ fn get_char_raster(c: char) -> RasterizedChar {
 /// Allows logging text to a pixel-based framebuffer.
 pub struct FrameBufferWriter {
     framebuffer: &'static mut [u8],
+    backbuffer: Vec<u8>,
     pub info: FrameBufferInfo,
     x_pos: usize,
     y_pos: usize,
-    text_col: Color,
-    background_col: Color,
+    pub text_col: Color,
+    pub background_col: Color,
 }
 
 impl FrameBufferWriter {
-    /// Creates a new logger that uses the given framebuffer.
+    /// Creates a new [FrameBufferWriter]
     pub fn new(framebuffer: &'static mut [u8], info: FrameBufferInfo) -> Self {
-        let mut logger = Self {
+        let fb_size = framebuffer.len();
+
+        let mut fb = Self {
             framebuffer,
+            backbuffer: vec![0; fb_size],
             info,
             x_pos: 0,
             y_pos: 0,
             text_col: Color::White,
-            background_col: Color::Black,
+            background_col: Color::MidnightBlue,
         };
-        logger.clear();
-        logger
+        fb.clear();
+        fb
     }
     /// Sets The Y Pos To + 1 Char Height + Additional Line Spacing
     /// Then Calls self.carriage_return()
@@ -175,23 +209,16 @@ impl FrameBufferWriter {
     pub fn clear(&mut self) {
         self.x_pos = BORDER_PADDING;
         self.y_pos = BORDER_PADDING;
-        //self.framebuffer.fill(0);
 
         let color = Color::to_pixel(self.background_col, self.buffer_info());
-        //let mut col_index = 0;
-
-        //for i in 0..self.framebuffer.len() {
-        //    self.framebuffer[i] = color[col_index];
-        //    if col_index == 3 {
-        //        col_index = 0;
-        //    }
-        //}
 
         for x in 0..self.info.width {
             for y in 0..self.info.height {
                 self.write_pixel(x, y, color)
             }
         }
+
+        self.copy_to_buffer();
     }
 
     /// Returns the width of the framebuffer.
@@ -268,6 +295,8 @@ impl FrameBufferWriter {
             }
         }
 
+        self.copy_to_buffer();
+
         self.x_pos += rendered_char.width() + LETTER_SPACING;
     }
 
@@ -309,7 +338,7 @@ impl FrameBufferWriter {
         let bytes_per_pixel = self.info.bytes_per_pixel;
         let byte_offset = pixel_offset * bytes_per_pixel;
         // Write Pixel To Framebuffer
-        self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
+        self.backbuffer[byte_offset..(byte_offset + bytes_per_pixel)]
             .copy_from_slice(&color[..bytes_per_pixel]);
     }
 
@@ -326,9 +355,9 @@ impl FrameBufferWriter {
 
         // Read the color value from the framebuffer
         [
-            self.framebuffer[byte_offset],
-            self.framebuffer[byte_offset + 1],
-            self.framebuffer[byte_offset + 2],
+            self.backbuffer[byte_offset],
+            self.backbuffer[byte_offset + 1],
+            self.backbuffer[byte_offset + 2],
             0,
         ]
     }
@@ -350,9 +379,9 @@ impl FrameBufferWriter {
             let top_byte_offset: usize = top_pixel_offset * bytes_per_pixel;
             let bottom_byte_offset: usize = bottom_pixel_offset * bytes_per_pixel;
 
-            self.framebuffer[top_byte_offset..(top_byte_offset + bytes_per_pixel)]
+            self.backbuffer[top_byte_offset..(top_byte_offset + bytes_per_pixel)]
                 .copy_from_slice(&color[..bytes_per_pixel]);
-            self.framebuffer[bottom_byte_offset..(bottom_byte_offset + bytes_per_pixel)]
+            self.backbuffer[bottom_byte_offset..(bottom_byte_offset + bytes_per_pixel)]
                 .copy_from_slice(&color[..bytes_per_pixel]);
         }
 
@@ -364,9 +393,9 @@ impl FrameBufferWriter {
             let left_byte_offset: usize = left_pixel_offset * bytes_per_pixel;
             let right_byte_offset: usize = right_pixel_offset * bytes_per_pixel;
 
-            self.framebuffer[left_byte_offset..(left_byte_offset + bytes_per_pixel)]
+            self.backbuffer[left_byte_offset..(left_byte_offset + bytes_per_pixel)]
                 .copy_from_slice(&color[..bytes_per_pixel]);
-            self.framebuffer[right_byte_offset..(right_byte_offset + bytes_per_pixel)]
+            self.backbuffer[right_byte_offset..(right_byte_offset + bytes_per_pixel)]
                 .copy_from_slice(&color[..bytes_per_pixel]);
         }
     }
@@ -390,10 +419,12 @@ impl FrameBufferWriter {
             for h in 0..height {
                 let pixel_offset: usize = (y + h) * self.info.stride + (x + w);
                 let byte_offset: usize = pixel_offset * bytes_per_pixel;
-                self.framebuffer[byte_offset..(byte_offset + bytes_per_pixel)]
+                self.backbuffer[byte_offset..(byte_offset + bytes_per_pixel)]
                     .copy_from_slice(&color[..bytes_per_pixel]);
             }
         }
+
+        self.copy_to_buffer();
     }
 
     /// Draws a line on the framebuffer using Bresenham's line algorithm.
@@ -431,6 +462,8 @@ impl FrameBufferWriter {
                 from_y = ((from_y as isize) + sy) as usize;
             }
         }
+
+        self.copy_to_buffer();
     }
 
     /// Draws a circle on the framebuffer using Bresenham's circle algorithm.
@@ -496,6 +529,8 @@ impl FrameBufferWriter {
                 err += dx - ((radius as isize) << 1);
             }
         }
+
+        self.copy_to_buffer();
     }
     /// Draws a filled circle on the framebuffer using Bresenham's circle algorithm.
     /// The center of the circle is at the point (cx, cy) and its radius is defined by `radius`.
@@ -529,6 +564,8 @@ impl FrameBufferWriter {
                 err += dx - ((radius as isize) << 1);
             }
         }
+
+        self.copy_to_buffer();
     }
 
     pub fn change_text_color(&mut self, col: Color) {
@@ -537,6 +574,16 @@ impl FrameBufferWriter {
 
     pub fn change_background_color(&mut self, col: Color) {
         self.background_col = col;
+    }
+
+    pub fn copy_to_buffer(&mut self) {
+        unsafe {
+            core::ptr::copy_nonoverlapping(
+                self.backbuffer.as_ptr(),
+                self.framebuffer.as_mut_ptr(),
+                self.backbuffer.len(),
+            )
+        };
     }
 }
 
