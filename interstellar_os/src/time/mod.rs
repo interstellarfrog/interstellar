@@ -57,13 +57,15 @@ pub struct Timer {
 
 impl Timer {
     #[allow(clippy::new_without_default)]
-    /// Create a new Timer and record the start time
+    /// Create a new Timer and records the start time
     pub fn new() -> Timer {
         let start_count = unsafe { APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
         Timer { start_count }
     }
 
-    /// Get the elapsed time in milliseconds
+    /// Get the elapsed time
+    /// 
+    /// This is tested to be accurate within 0.3 seconds
     pub fn elapsed(&self) -> Duration {
         // get the current count say its 10
         let current_count = unsafe { APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
@@ -74,6 +76,10 @@ impl Timer {
     }
 
     /// Suspend the CPU for a [Duration]
+    /// 
+    /// This is tested to be accurate within 0.3 seconds
+    /// 
+    /// The lowest time you can give is 10ms anything under this will finish after 1 loop cycle
     pub fn sleep(self, duration: Duration) {
         // Calculate the number of timer ticks for the desired duration
 

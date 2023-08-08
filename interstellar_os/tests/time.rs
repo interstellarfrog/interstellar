@@ -20,10 +20,12 @@
 #![test_runner(interstellar_os::test_runner)] // Defines The Test Runner Function
 #![reexport_test_harness_main = "test_main"]
 
+use core::time::Duration;
+
 use interstellar_os as lib;
 
 use bootloader_api::{entry_point, BootInfo, BootloaderConfig};
-use lib::{drivers::random::RandomNumberGenerator, other::log::LOGGER, serial_print};
+use lib::{other::log::LOGGER, serial_print};
 
 pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     use bootloader_api::config::*;
@@ -44,10 +46,10 @@ pub static BOOTLOADER_CONFIG: BootloaderConfig = {
     config
 };
 
-entry_point!(random, config = &BOOTLOADER_CONFIG);
+entry_point!(time, config = &BOOTLOADER_CONFIG);
 
-fn random(boot_info: &'static mut BootInfo) -> ! {
-    serial_print!("\nrandom::random...\t");
+fn time(boot_info: &'static mut BootInfo) -> ! {
+    serial_print!("\ntime::time...\t");
     lib::init(boot_info); // Start Interrupt Descriptor table ect.
 
     serial_print!("[Ok]\n");
@@ -62,69 +64,50 @@ fn random(boot_info: &'static mut BootInfo) -> ! {
 //########################################
 
 #[test_case]
-fn random_numbers_0_to_100() {
+fn sleep() {
     LOGGER
         .get()
         .unwrap()
         .lock()
-        .trace("Running random numbers 0 to 100 test", file!(), line!());
-    let mut rng = RandomNumberGenerator::default();
+        .trace("Running sleep test", file!(), line!());
 
-    for _ in 0..50 {
-        let number = rng.generate_number(Some(0), Some(100));
-        if number.is_none() {
-            panic!("Random number generator gave a 'None' value");
-        }
+    let timer = lib::time::Timer::new();
+
+    // The LAPIC timer ticks every 10ms
+    // So every 100 ticks is 1 second
+
+    let start_count = unsafe { lib::time::APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
+
+    timer.sleep(Duration::from_secs(1));
+
+    let end_count = unsafe { lib::time::APIC_COUNT.load(core::sync::atomic::Ordering::SeqCst) };
+
+    // So if this is close to 100 we know the timings are semi correct
+
+    let slept_for = end_count - start_count;
+
+    if slept_for > 130 || slept_for < 70 {
+        panic!("Timing should be close to 100 but it is {}", slept_for)
     }
 }
 
+
 #[test_case]
-fn random_numbers_0_to_max() {
+fn elapsed() {
     LOGGER
         .get()
         .unwrap()
         .lock()
-        .trace("Running random numbers 0 to max test", file!(), line!());
-    let mut rng = RandomNumberGenerator::default();
+        .trace("Running sleep test", file!(), line!());
 
-    for _ in 0..50 {
-        let number = rng.generate_number(Some(0), None);
-        if number.is_none() {
-            panic!("Random number generator gave a 'None' value");
-        }
+    let timer = lib::time::Timer::new();
+
+    timer.sleep(Duration::from_secs(1));
+
+    let elapsed = timer.elapsed().as_secs_f64();
+
+    if elapsed > 1.3 || elapsed < 0.7 {
+        panic!("Timing should be close to 1 but was {}", elapsed)
     }
-}
 
-#[test_case]
-fn random_numbers_min_to_2_147_483_646() {
-    LOGGER.get().unwrap().lock().trace(
-        "Running random numbers min to 2,147,483,646 test",
-        file!(),
-        line!(),
-    );
-    let mut rng = RandomNumberGenerator::default();
-
-    for _ in 0..50 {
-        let number = rng.generate_number(None, Some(2147483646));
-        if number.is_none() {
-            panic!("Random number generator gave a 'None' value");
-        }
-    }
-}
-
-#[test_case]
-fn random_letters() {
-    LOGGER
-        .get()
-        .unwrap()
-        .lock()
-        .trace("Running random letters test", file!(), line!());
-    let mut rng = RandomNumberGenerator::default();
-
-    for _ in 0..50 {
-        let letter = rng.generate_letter();
-        if letter.is_none() {
-            panic!("Random letter generator gave a 'None' value");
-        }
-    }
 }

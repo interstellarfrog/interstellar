@@ -46,7 +46,7 @@ pub static BOOTLOADER_CONFIG: BootloaderConfig = {
 
     let mut config = BootloaderConfig::new_default();
     config.mappings = mappings;
-    config.kernel_stack_size = 80 * 1024 * 128;
+    config.kernel_stack_size = 48 * 1024; // 48 Kib   decreasing this will cause undefined behavior
     config
 };
 
