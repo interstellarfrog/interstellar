@@ -355,10 +355,12 @@ pub fn _print(args: core::fmt::Arguments, color: Option<Color>) {
         interrupts::without_interrupts(|| {
             if let Some(fb) = FRAMEBUFFER.get() {
                 let formatted = format!("{}", args);
-                
 
                 for c in formatted.as_str().chars() {
-                    fb.lock().write_char(c, &Color::to_pixel(col, BOOT_INFO.get().unwrap().lock().framebuffer_info))
+                    fb.lock().write_char(
+                        c,
+                        &Color::to_pixel(col, BOOT_INFO.get().unwrap().lock().framebuffer_info),
+                    )
                 }
             }
         });
@@ -368,9 +370,7 @@ pub fn _print(args: core::fmt::Arguments, color: Option<Color>) {
                 fb.lock().write_fmt(args).unwrap()
             }
         });
-    }   
-
-    
+    }
 }
 
 pub fn init() {

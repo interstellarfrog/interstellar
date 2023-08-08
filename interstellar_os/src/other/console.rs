@@ -34,7 +34,7 @@ pub fn handle_console(line: &str) -> bool {
         .unwrap()
         .lock()
         .trace("Handling console command", file!(), line!());
-    
+
     if !line.is_empty() {
         print!("\n");
     }
@@ -81,7 +81,11 @@ pub fn handle_console(line: &str) -> bool {
                     stack_overflow();
                 }
                 _ => {
-                    LOGGER.get().unwrap().lock().error(&format!("UNKNOWN COMMAND - <{}>", command));
+                    LOGGER
+                        .get()
+                        .unwrap()
+                        .lock()
+                        .error(&format!("UNKNOWN COMMAND - <{}>", command));
                 }
             }
         }
@@ -120,12 +124,20 @@ fn hello_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn add_command(args: &[&str]) {
     if args.len() != 2 {
-        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: add <num1> <num2>");
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .error("Invalid number of arguments. Usage: add <num1> <num2>");
     } else if let (Ok(num1), Ok(num2)) = (args[0].parse::<i128>(), args[1].parse::<i128>()) {
         let result = num1 + num2;
         println!("Sum: {}", result);
     } else {
-        LOGGER.get().unwrap().lock().error("Invalid arguments. Usage: add <num1> <num2>");
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .error("Invalid arguments. Usage: add <num1> <num2>");
     }
 }
 
@@ -136,12 +148,20 @@ fn add_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn subtract_command(args: &[&str]) {
     if args.len() != 2 {
-        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: subtract <num1> <num2>");
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .error("Invalid number of arguments. Usage: subtract <num1> <num2>");
     } else if let (Ok(num1), Ok(num2)) = (args[0].parse::<i128>(), args[1].parse::<i128>()) {
         let result = num1 - num2;
         println!("\nDifference: {}", result);
     } else {
-        LOGGER.get().unwrap().lock().error("Invalid arguments. Usage: subtract <num1> <num2>");
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .error("Invalid arguments. Usage: subtract <num1> <num2>");
     }
 }
 
@@ -152,12 +172,20 @@ fn subtract_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn multiply_command(args: &[&str]) {
     if args.len() != 2 {
-        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: multiply <num1> <num2>");
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .error("Invalid number of arguments. Usage: multiply <num1> <num2>");
     } else if let (Ok(num1), Ok(num2)) = (args[0].parse::<i128>(), args[1].parse::<i128>()) {
         let result = num1 * num2;
         println!("\nProduct: {}", result);
     } else {
-        LOGGER.get().unwrap().lock().error("Invalid arguments. Usage: multiply <num1> <num2>");
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .error("Invalid arguments. Usage: multiply <num1> <num2>");
     }
 }
 
@@ -168,7 +196,11 @@ fn multiply_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn divide_command(args: &[&str]) {
     if args.len() != 2 {
-        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: multiply <num1> <num2>");
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .error("Invalid number of arguments. Usage: multiply <num1> <num2>");
     } else if let (Ok(num1), Ok(num2)) = (args[0].parse::<f64>(), args[1].parse::<f64>()) {
         if num2 == 0.0 {
             println!("\nCannot divide by zero.");
@@ -177,7 +209,11 @@ fn divide_command(args: &[&str]) {
             println!("\nQuotient: {}", result);
         }
     } else {
-        LOGGER.get().unwrap().lock().error("Invalid arguments. Usage: divide <num1> <num2>");
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .error("Invalid arguments. Usage: divide <num1> <num2>");
     }
 }
 
@@ -188,12 +224,20 @@ fn divide_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn power_command(args: &[&str]) {
     if args.len() != 2 {
-        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: power <base> <exponent>");
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .error("Invalid number of arguments. Usage: power <base> <exponent>");
     } else if let (Ok(base), Ok(exponent)) = (args[0].parse::<f64>(), args[1].parse::<f64>()) {
         let result = power(base, exponent);
         println!("\nResult: {}", result);
     } else {
-        LOGGER.get().unwrap().lock().error("Invalid arguments. Usage: power <base> <exponent>");
+        LOGGER
+            .get()
+            .unwrap()
+            .lock()
+            .error("Invalid arguments. Usage: power <base> <exponent>");
     }
 }
 
@@ -249,7 +293,9 @@ fn check_memory() {
 
 fn time_command(args: &[&str]) {
     if args.is_empty() || args.len() != 1 {
-        LOGGER.get().unwrap().lock().error("Invalid number of arguments. Usage: time <command> - Tip Use time help or time /?");
+        LOGGER.get().unwrap().lock().error(
+            "Invalid number of arguments. Usage: time <command> - Tip Use time help or time /?",
+        );
     } else {
         let arg = args[0];
 
@@ -275,7 +321,9 @@ fn time_command(args: &[&str]) {
                 println!("Time Since Boot: {}s", boot_time.as_secs());
             }
         } else {
-            LOGGER.get().unwrap().lock().error("Invalid Arguments. Example Usage: time <boot> - Tip Use time help or time /?");
+            LOGGER.get().unwrap().lock().error(
+                "Invalid Arguments. Example Usage: time <boot> - Tip Use time help or time /?",
+            );
         }
     }
 }
@@ -287,7 +335,9 @@ fn time_command(args: &[&str]) {
 /// * `args` - The arguments passed to the command.
 fn change_color(args: &[&str]) {
     if args.is_empty() || args.len() != 1 {
-        LOGGER.get().unwrap().lock().error("Invalid number of Arguments. Usage: color <color> - Tip Use color help or color /?");
+        LOGGER.get().unwrap().lock().error(
+            "Invalid number of Arguments. Usage: color <color> - Tip Use color help or color /?",
+        );
     } else {
         let arg = args[0];
 
@@ -351,7 +401,10 @@ fn change_color(args: &[&str]) {
             "coral" => Color::Coral,
             "aqua" => Color::Aqua,
             _ => {
-                LOGGER.get().unwrap().lock().error(&format!("Invalid Color: {} - Tip Use color help or color /?", arg));
+                LOGGER.get().unwrap().lock().error(&format!(
+                    "Invalid Color: {} - Tip Use color help or color /?",
+                    arg
+                ));
                 return;
             }
         };
@@ -432,7 +485,10 @@ fn change_background_color(args: &[&str]) -> bool {
             "coral" => Color::Coral,
             "aqua" => Color::Aqua,
             _ => {
-                LOGGER.get().unwrap().lock().error(&format!("Invalid color: {} - Tip Use bgcolor help or bgcolor /?", arg));
+                LOGGER.get().unwrap().lock().error(&format!(
+                    "Invalid color: {} - Tip Use bgcolor help or bgcolor /?",
+                    arg
+                ));
                 return false;
             }
         };

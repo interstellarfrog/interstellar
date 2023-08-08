@@ -134,10 +134,13 @@ impl Logger {
                 serial_println!("Error - {}", message);
             }
             if self.screen_printing {
-
                 let old_col = FRAMEBUFFER.get().unwrap().lock().text_col;
 
-                FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Red);
+                FRAMEBUFFER
+                    .get()
+                    .unwrap()
+                    .lock()
+                    .change_text_color(Color::Red);
 
                 println!("Error - {}", message);
 
@@ -157,16 +160,17 @@ impl Logger {
                 serial_println!("Warning - {}", message);
             }
             if self.screen_printing {
-
-
                 let old_col = FRAMEBUFFER.get().unwrap().lock().text_col;
 
-                FRAMEBUFFER.get().unwrap().lock().change_text_color(Color::Red);
+                FRAMEBUFFER
+                    .get()
+                    .unwrap()
+                    .lock()
+                    .change_text_color(Color::Red);
 
                 println!("Warning - {}", message);
 
                 FRAMEBUFFER.get().unwrap().lock().change_text_color(old_col);
-
             }
         }
     }

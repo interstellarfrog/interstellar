@@ -35,7 +35,7 @@ pub extern "x86-interrupt" fn syscall_handler(_stack_frame: InterruptStackFrame)
         } else if let Some(syscall_handler_fn) = SYSCALL_TABLE[syscall_number as usize] {
             let result = syscall_handler_fn();
             asm!("mov rax, {}", in(reg) result)
-        } 
+        }
     }
 }
 
