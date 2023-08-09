@@ -21,6 +21,8 @@ PCI driver
 NIC drivers - there is drivers in the linux kernel we can use for a reference - https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/net/ethernet a good starter driver that can also be used with QEMU is located here: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/drivers/net/ethernet/realtek/8139too.c
 Port rust compiler
 make programs - games, web browser - for testing purposes
+make package manager or port package manager - could probably just straight up port pacman at this point
+add in OS live updating for the OS - use github to check for the latest version then pull required files and replace old files 
 Port NVIDIA/AMD GPU DRIVERS - im not going to try to write GPU drivers from scratch with next to 0 info about the workings so we dont really have a choice
 
 NOT IMPORTANT -- |
