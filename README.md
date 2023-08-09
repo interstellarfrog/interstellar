@@ -4,6 +4,8 @@
 
 This project is an Operating System written fully in Rust for x86 64bit (X86_64) that supports both UEFI and BIOS systems.
 
+See the [Wiki](https://github.com/interstellarfrog/interstellar/wiki) (work in progress) for more info.
+
 ## Objectives
 
 - My current objectives are to implement a user mode with a file system, GUI, and some simple games like noughts and crosses and chess. I also plan to port the Rust compiler and Python.
